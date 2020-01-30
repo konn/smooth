@@ -29,6 +29,13 @@ dependencies:
 - ghc-typelits-knownnat
 - ghc-typelits-presburger
 - equational-reasoning
+- halg-core
+- halg-polynomials
+- algebra
+- algebraic-prelude
+- containers
+- foldl
+- halg-algorithms
 
 library:
   source-dirs: src

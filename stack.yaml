@@ -39,8 +39,11 @@ extra-deps:
 - github: konn/computational-algebra
   commit: a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103
   subdirs:
+  - algebraic-prelude
   - halg-core
   - halg-polynomials
+  - halg-heaps
+  - halg-matrices
   - halg-algorithms
 - git: git@github.com:konn/ghc-typelits-presburger
   commit: 3fde03821214f0265da7e7c599f4377c1e5c60c7

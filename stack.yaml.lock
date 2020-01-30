@@ -13,6 +13,22 @@ packages:
     hackage: equational-reasoning-0.6.0.1
 - completed:
     size: 1120643
+    subdir: algebraic-prelude
+    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    cabal-file:
+      size: 1661
+      sha256: a57dfac3a519a94902e811abc0b1e74e9c7f4edf2f26c960c54ea087717a1753
+    name: algebraic-prelude
+    version: 0.1.1.0
+    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    pantry-tree:
+      size: 375
+      sha256: be178264095c172cb288d9c55b9ef28d38879ae46a8122c15cc668bf3abdb9fe
+  original:
+    subdir: algebraic-prelude
+    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+- completed:
+    size: 1120643
     subdir: halg-core
     url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
     cabal-file:
@@ -42,6 +58,38 @@ packages:
       sha256: 2efb8818ac1027b68c7f133b6144e8ae6ceb3f66f5ebcabee228327ab6c9dbe5
   original:
     subdir: halg-polynomials
+    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+- completed:
+    size: 1120643
+    subdir: halg-heaps
+    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    cabal-file:
+      size: 1328
+      sha256: 2f8e5af94ac610573de3708c6c489541944d4ab34b4bb88634bd280d077c558e
+    name: halg-heaps
+    version: 0.1.0.0
+    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    pantry-tree:
+      size: 709
+      sha256: 19a9189db2d0f3705bc4d8caed558b5a59edbe4b004245c2ff9358ca044f0481
+  original:
+    subdir: halg-heaps
+    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+- completed:
+    size: 1120643
+    subdir: halg-matrices
+    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    cabal-file:
+      size: 2805
+      sha256: bf449a5e9be74f53d088a69d8a4d315e75a249a93686371e74183788c9a6f82f
+    name: halg-matrices
+    version: 0.6.0.0
+    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    pantry-tree:
+      size: 1130
+      sha256: 81abd8619826317682fb3597dc2b55ffabe6177b0d852e7e8b1b6000a7bef03d
+  original:
+    subdir: halg-matrices
     url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
 - completed:
     size: 1120643
