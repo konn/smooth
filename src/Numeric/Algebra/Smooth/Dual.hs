@@ -28,9 +28,11 @@ import           Numeric.Algebra.Smooth.Classes
 import           Numeric.Algebra.Smooth.Types
 import           Numeric.Natural
 
+type Dual = Dual' Double
+
 -- | A ring \(\mathbb{R}[\epsilon] = \mathbb{R}[X]/X^2\) of dual numbers.
 -- Corresponding to the usual forward-mode automatic differentiation.
-data Dual = Dual { value :: !Double, epsilon :: Double }
+data Dual' a = Dual { value :: !a, epsilon :: a }
   deriving
     ( Additive, NA.Monoidal, NA.Group,
       NA.Abelian, NA.Rig, NA.Commutative,
@@ -38,23 +40,23 @@ data Dual = Dual { value :: !Double, epsilon :: Double }
       NA.Unital, NA.Ring,
       NA.LeftModule Natural, NA.RightModule Natural,
       NA.LeftModule Integer, NA.RightModule Integer
-    ) via AP.WrapNum Dual
+    ) via AP.WrapNum (Dual' a)
 
-instance NA.RightModule (AP.WrapFractional Double) Dual where
-  Dual a da *. AP.WrapFractional x = Dual (a * x) (da * x)
+instance Fractional a => NA.RightModule (AP.WrapFractional Double) (Dual' a) where
+  Dual a da *. AP.WrapFractional x = Dual (a * realToFrac x) (da * realToFrac x)
 
-instance NA.LeftModule (AP.WrapFractional Double) Dual where
-  AP.WrapFractional x .* Dual a da = Dual (x * a) (x * da)
+instance Fractional a => NA.LeftModule (AP.WrapFractional Double) (Dual' a) where
+  AP.WrapFractional x .* Dual a da = Dual (realToFrac x * a) (realToFrac x * da)
 
-instance Show Dual where
+instance (Show a, Num a, Eq a) => Show (Dual' a) where
   showsPrec d (Dual a 0) = showsPrec d a
   showsPrec d (Dual 0 e) = showParen (d > 10) $
     showsPrec 11 e . showString " ε"
   showsPrec d (Dual a b) = showParen (d > 10) $
     shows a . showString " + " . showsPrec 11 b . showString " ε"
 
-instance SmoothRing Dual where
-  liftSmooth f (ds :: Vec n Dual) =
+instance Floating a => SmoothRing (Dual' a) where
+  liftSmooth f (ds :: Vec n (Dual' a)) =
     let reals = value <$> ds
         duals = epsilon <$> ds
         coes =
@@ -81,7 +83,7 @@ instance Algebra (AP.WrapFractional Double) DualNumBasis where
     f' R = fr
     f' D = fd
 
-instance Num Dual where
+instance Num a => Num (Dual' a) where
   fromInteger n = Dual (fromInteger n) 0
   Dual a da + Dual b db = Dual (a + b) (da + db)
   Dual a da - Dual b db = Dual (a - b) (da - db)
@@ -90,12 +92,12 @@ instance Num Dual where
   abs (Dual a da) = Dual (abs a) (signum a)
   signum (Dual a da) = Dual (signum a) 0
 
-instance Fractional Dual where
+instance Fractional a => Fractional (Dual' a) where
   fromRational = (`Dual` 0) . fromRational
   Dual x dx / Dual y dy = Dual (x / y) (dx / y - x * dy / (y * y))
   recip (Dual x dx) = Dual (recip x) (- dx / (x * x))
 
-instance Floating Dual where
+instance Floating a => Floating (Dual' a) where
   pi = Dual pi 0
   exp (Dual a da) = Dual (exp a) (da * exp a)
   sin (Dual a da) = Dual (sin a) (da * cos a)
