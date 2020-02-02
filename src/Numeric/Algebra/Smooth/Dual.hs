@@ -124,13 +124,13 @@ instance Floating a => Floating (Dual' a) where
   acosh (Dual a da) = Dual (acosh a) (da / sqrt (a ^^ 2 - 1))
   atanh (Dual a da) = Dual (atanh a) (da / (1 - a ^^ 2))
 
--- | \(n\)-ary product of 'Dual' numbers,
---   which does not have mutual relation between
---   each distinct infinitesimals.
 type family Duals' n a where
   Duals' 0 a = a
   Duals' n a = Dual' (Duals (n - 1) a)
 
+-- | \(n\)-ary product of 'Dual' numbers,
+--   which does not have mutual relation between
+--   each distinct infinitesimals.
 newtype Duals n a = Duals { runDuals :: Duals' n a }
 
 instance (KnownNat n, Num a) => Num (Duals n a) where
