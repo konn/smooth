@@ -30,6 +30,8 @@ dependencies:
 - ghc-typelits-presburger
 - equational-reasoning
 - halg-core
+- ghc-typelits-natnormalise
+- singletons-presburger
 - halg-polynomials
 - algebra
 - algebraic-prelude

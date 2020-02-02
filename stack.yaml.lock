@@ -149,6 +149,13 @@ packages:
       sha256: c3c4ac7408c2999b6779714459d2433ff2495f90161d7c3ca349ca3aa6386be8
   original:
     hackage: unamb-0.2.7
+- completed:
+    hackage: singletons-presburger-0.3.0.0@sha256:f39ad9cbc1d2aea4f0e8e007be1a3cf7ec0d6ae8640c174d95ad36582f46c9c1,2180
+    pantry-tree:
+      size: 313
+      sha256: e07fa0fd0620162dc0311e6fd6c1fa9f5244553f1a17bed8bbfa0fd056ad97d7
+  original:
+    hackage: singletons-presburger-0.3.0.0
 snapshots:
 - completed:
     size: 524162

@@ -51,3 +51,4 @@ extra-deps:
 - sized-0.3.0.0
 - control-monad-loop-0.1
 - unamb-0.2.7
+- singletons-presburger-0.3.0.0
