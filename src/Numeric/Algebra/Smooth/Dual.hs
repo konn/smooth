@@ -14,8 +14,10 @@ import           Data.Coerce
 import           Data.List
 import qualified Data.Map                           as M
 import           Data.Maybe
+import           Data.Proxy
 import           Data.Singletons.Prelude            (type (<), Sing, sing,
                                                      withSingI)
+import           Data.Singletons.TypeLits
 import           Data.Sized.Builtin                 (Sized)
 import qualified Data.Sized.Builtin                 as SV
 import           Data.Tuple
@@ -23,6 +25,7 @@ import qualified Data.Type.Natural                  as PN
 import           Data.Type.Natural.Builtin          (ToPeano, sToPeano)
 import           Data.Type.Natural.Class.Arithmetic hiding (PNum (..))
 import           Data.Type.Natural.Class.Order      hiding (type (<=))
+import           Data.Type.Ordinal.Builtin
 import           Data.Vector                        (Vector)
 import qualified Data.Vector                        as V
 import qualified Data.Vector.Unboxed                as U
@@ -66,7 +69,13 @@ instance (Show a, Num a, Eq a) => Show (Dual' a) where
     shows a . showString " + " . showsPrec 11 b . showString " ε"
 
 instance Floating a => SmoothRing (Dual' a) where
-  liftSmooth f (ds :: Vec n (Dual' a)) =
+  liftSmooth = liftDual
+
+liftDual
+  :: (KnownNat n, Floating a)
+  => (forall a. Floating a => Vec n a -> a)
+  -> Vec n (Dual' a) -> Dual' a
+liftDual f (ds :: Vec n (Dual' a)) =
     let reals = value <$> ds
         duals = epsilon <$> ds
         coes =
@@ -132,6 +141,14 @@ type family Duals' n a where
 --   which does not have mutual relation between
 --   each distinct infinitesimals.
 newtype Duals n a = Duals { runDuals :: Duals' n a }
+  deriving
+    ( Additive, NA.Monoidal, NA.Group,
+      NA.Abelian, NA.Rig, NA.Commutative,
+      NA.Multiplicative, NA.Semiring,
+      NA.Unital, NA.Ring,
+      NA.LeftModule Natural, NA.RightModule Natural,
+      NA.LeftModule Integer, NA.RightModule Integer
+    ) via AP.WrapNum (Duals n a)
 
 instance (KnownNat n, Num a) => Num (Duals n a) where
   fromInteger n =
@@ -335,9 +352,57 @@ dx =
         IsSucc (sl :: Sing l) ->
           Duals $ unsafeCoerce $ Dual (dx @l :: Duals m a) 0
 
+nthD :: (Num a, KnownNat n) => Ordinal n -> Duals n a
+nthD (OLt (sn :: Sing k)) = withKnownNat sn $ dx @k
+
 fromCoeff :: forall n a. (Num a, KnownNat n) => a -> Duals n a
 fromCoeff c =
   case sing @n of
     Zero -> Duals c
     Succ (sl :: Sing m) -> Duals $ unsafeCoerce
       (Dual (fromCoeff @m c) 0)
+
+multDiff
+  :: forall n a. (KnownNat n, Eq a, Floating a)
+  => Vec n Word
+  -> (forall x. Floating x => Vec n x -> x)
+  -> Vec n a -> a
+multDiff deg f xs = case someNatVal (fromIntegral $ sum deg) of
+  SomeNat (_ :: Proxy k) -> withKnownNat (sing @k) $
+    let ords = sliced deg $ map nthD $ enumOrdinal (sing @k)
+        trms = SV.zipWithSame (\a b -> fromCoeff a + sum b) xs ords
+    in fromMaybe 0.0
+     $ M.lookup (SV.replicate' @_ @k True)
+     $ components
+     $ liftDuals f trms
+
+instance (Floating a, KnownNat n) => SmoothRing (Duals n a) where
+  liftSmooth = liftDuals
+
+liftDuals
+  :: forall k a n. (Floating a, KnownNat k, KnownNat n)
+  => (forall x. Floating x => Vec k x -> x)
+  -> Vec k (Duals n a) -> Duals n a
+liftDuals f = case sing @n of
+      Zero -> f
+      Succ (_ :: Sing m) ->
+        \(xs :: Vec k (Duals n a)) ->
+          unsafeCoerce $ liftDual @k @(Duals m a) f $ unsafeCoerce xs
+
+sliced :: KnownNat n => Vec n Word -> [a] -> Vec n [a]
+sliced = loop
+  where
+    loop :: KnownNat k => Vec k Word -> [a] -> Vec k [a]
+    loop SV.NilR xs = SV.empty
+    loop (n SV.:< ns) xs =
+      let (lf, rest) = splitAt (fromIntegral n) xs
+      in lf SV.:< loop ns rest
+
+instance (KnownNat n, Fractional a)
+      => NA.RightModule (AP.WrapFractional Double) (Duals n a) where
+  a *. AP.WrapFractional x = a * realToFrac x
+
+instance (KnownNat n, Fractional a)
+      => NA.LeftModule (AP.WrapFractional Double) (Duals n a) where
+  AP.WrapFractional x .* a =
+    realToFrac x * a
