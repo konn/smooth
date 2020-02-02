@@ -12,143 +12,115 @@ packages:
   original:
     hackage: equational-reasoning-0.6.0.1
 - completed:
-    size: 1120643
+    size: 3634806
     subdir: algebraic-prelude
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
     cabal-file:
       size: 1661
       sha256: a57dfac3a519a94902e811abc0b1e74e9c7f4edf2f26c960c54ea087717a1753
     name: algebraic-prelude
     version: 0.1.1.0
-    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    sha256: 627d95d9cd6e017f2d5bf322dee7c8f6ae2768e153a819321b0d2c6d8874642d
     pantry-tree:
       size: 375
       sha256: be178264095c172cb288d9c55b9ef28d38879ae46a8122c15cc668bf3abdb9fe
   original:
     subdir: algebraic-prelude
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
 - completed:
-    size: 1120643
+    size: 3634806
     subdir: halg-core
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
     cabal-file:
       size: 2023
       sha256: e26a21ec05652e5a22b86530297d9e71018245669148b4c6c2ec10582be38dd0
     name: halg-core
     version: 0.6.0.0
-    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    sha256: 627d95d9cd6e017f2d5bf322dee7c8f6ae2768e153a819321b0d2c6d8874642d
     pantry-tree:
       size: 1131
       sha256: 5fd5ae832a9f5a5bd9ef20ba4e028146f3f02a1a42dd73308f86c05dde20d26e
   original:
     subdir: halg-core
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
 - completed:
-    size: 1120643
+    size: 3634806
     subdir: halg-polynomials
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
     cabal-file:
       size: 2716
       sha256: 4b50c753b59830c797b5232737ce9a8222ea65186f74c6ee205d16649e4cc95d
     name: halg-polynomials
     version: 0.6.0.0
-    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    sha256: 627d95d9cd6e017f2d5bf322dee7c8f6ae2768e153a819321b0d2c6d8874642d
     pantry-tree:
       size: 1334
       sha256: 2efb8818ac1027b68c7f133b6144e8ae6ceb3f66f5ebcabee228327ab6c9dbe5
   original:
     subdir: halg-polynomials
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
 - completed:
-    size: 1120643
+    size: 3634806
     subdir: halg-heaps
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
     cabal-file:
       size: 1328
       sha256: 2f8e5af94ac610573de3708c6c489541944d4ab34b4bb88634bd280d077c558e
     name: halg-heaps
     version: 0.1.0.0
-    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    sha256: 627d95d9cd6e017f2d5bf322dee7c8f6ae2768e153a819321b0d2c6d8874642d
     pantry-tree:
       size: 709
       sha256: 19a9189db2d0f3705bc4d8caed558b5a59edbe4b004245c2ff9358ca044f0481
   original:
     subdir: halg-heaps
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
 - completed:
-    size: 1120643
+    size: 3634806
     subdir: halg-matrices
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
     cabal-file:
       size: 2805
       sha256: bf449a5e9be74f53d088a69d8a4d315e75a249a93686371e74183788c9a6f82f
     name: halg-matrices
     version: 0.6.0.0
-    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    sha256: 627d95d9cd6e017f2d5bf322dee7c8f6ae2768e153a819321b0d2c6d8874642d
     pantry-tree:
       size: 1130
       sha256: 81abd8619826317682fb3597dc2b55ffabe6177b0d852e7e8b1b6000a7bef03d
   original:
     subdir: halg-matrices
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
 - completed:
-    size: 1120643
+    size: 3634806
     subdir: halg-algorithms
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
     cabal-file:
       size: 13932
       sha256: d80890ca42929dae4c861e52cf04eceb5a20b0292ed31a809d96e782f7a429d8
     name: halg-algorithms
     version: 0.6.0.0
-    sha256: 49b473cf72889f1dd3d8002bc4a3d260615e525cd9803ac11a6693aa843158f0
+    sha256: 627d95d9cd6e017f2d5bf322dee7c8f6ae2768e153a819321b0d2c6d8874642d
     pantry-tree:
       size: 2803
       sha256: 30076eb1524b8dd0ba7f38373900bc919a9981a3ac89150784faf1f023e85996
   original:
     subdir: halg-algorithms
-    url: https://github.com/konn/computational-algebra/archive/a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103.tar.gz
+    url: https://github.com/konn/computational-algebra/archive/e417a650a567e4847ead4edff83904bf6c0a9626.tar.gz
 - completed:
-    cabal-file:
-      size: 2233
-      sha256: 6b70be19900d37c6c61e6352a0ce0c4d073ac3ac1b1a2a25e8f7f012fd8670c2
-    name: ghc-typelits-presburger
-    version: 0.2.0.5
-    git: git@github.com:konn/ghc-typelits-presburger
+    hackage: ghc-typelits-presburger-0.3.0.0@sha256:dc3ff32b1cb0fc82b1bfa1c21d84dc55adca027ffb818ea67ec7c99859c5b522,2629
     pantry-tree:
-      size: 1722
-      sha256: 464b78b549c4e400757beb1a132e6bf08a1a1e0ff0dbcd120fc249e9c0144abd
-    commit: 3fde03821214f0265da7e7c599f4377c1e5c60c7
+      size: 528
+      sha256: 8957e953ef6bb403633b0f53e5038733fee2f8e0874d1f5662683242e874f5e9
   original:
-    git: git@github.com:konn/ghc-typelits-presburger
-    commit: 3fde03821214f0265da7e7c599f4377c1e5c60c7
+    hackage: ghc-typelits-presburger-0.3.0.0
 - completed:
-    cabal-file:
-      size: 2678
-      sha256: 7112182f7f5f8dd545746ccd975819e0f5974ce24f0b92390f2b33d4e2fc57c8
-    name: type-natural
-    version: 0.8.2.0
-    git: git@github.com:konn/type-natural.git
+    hackage: type-natural-0.8.3.1@sha256:cad5dbfa5ac95cb0d68c09d58cfca5c3e154cc786f0dfd2684c53f36203f1bda,3031
     pantry-tree:
-      size: 1472
-      sha256: 7f02922d33e282d4b480525873f484bdfe79415d811159624daf446a0a13847b
-    commit: acb8aee6aefc4c50b4e88d2b02695d31d3b38c9b
+      size: 1004
+      sha256: 1843ae1ac6d5b529206ab93f6ab10b11f233fb99b799e19a50ea04b607fb0f39
   original:
-    git: git@github.com:konn/type-natural.git
-    commit: acb8aee6aefc4c50b4e88d2b02695d31d3b38c9b
-- completed:
-    size: 16751
-    url: https://github.com/konn/sized/archive/10da0b1d44d2dadf39e2abbe86d6ae7ea0470ffe.tar.gz
-    cabal-file:
-      size: 1811
-      sha256: e2ff88374140ac77a724e2ce19fcbeb90a4577d94a340ea90806a3ed4dc223b0
-    name: sized
-    version: 0.3.0.1
-    sha256: 2b6e323fdcb401a83f7bb324c8a0c806c8930727dc2f4cb30bed55efccb50987
-    pantry-tree:
-      size: 923
-      sha256: 5007235250afbfd69922b93e58d0994dc1e65e4b587fb307beb020e0b5c88f0a
-  original:
-    url: https://github.com/konn/sized/archive/10da0b1d44d2dadf39e2abbe86d6ae7ea0470ffe.tar.gz
+    hackage: type-natural-0.8.3.1
 - completed:
     hackage: algebra-4.3.1@sha256:323cf20c508e0b71422b767ff3a89e4188f68aa59b2df9d0fe6e9f9bae7938fb,4129
     pantry-tree:
@@ -156,6 +128,13 @@ packages:
       sha256: 2dea7d23304c09c902fb1f90f45b1b22df6ded47fb717742cca119f9f3667b21
   original:
     hackage: algebra-4.3.1@rev:2
+- completed:
+    hackage: sized-0.3.0.0@sha256:d723d3a44a0d3db7185e33d3513cf8c97625c557fcaf2241abfd8e2dbc7aa62a,1797
+    pantry-tree:
+      size: 452
+      sha256: ed6e4cdd1a423a1b87ffcf3fa6ff0e7b0f35dcea8ff5b345897ee828487b1e32
+  original:
+    hackage: sized-0.3.0.0
 - completed:
     hackage: control-monad-loop-0.1@sha256:2b8d9fbc6e53f2c8f679188952b90f2c69507d1c1efd8867beb64591a22b341c,1106
     pantry-tree:

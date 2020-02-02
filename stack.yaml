@@ -37,7 +37,7 @@ packages:
 extra-deps:
 - equational-reasoning-0.6.0.1
 - github: konn/computational-algebra
-  commit: a8bb7d7d23abe3a7bb0b215d25e643ffc14d1103
+  commit: e417a650a567e4847ead4edff83904bf6c0a9626
   subdirs:
   - algebraic-prelude
   - halg-core
@@ -45,12 +45,9 @@ extra-deps:
   - halg-heaps
   - halg-matrices
   - halg-algorithms
-- git: git@github.com:konn/ghc-typelits-presburger
-  commit: 3fde03821214f0265da7e7c599f4377c1e5c60c7
-- git: git@github.com:konn/type-natural.git
-  commit: acb8aee6aefc4c50b4e88d2b02695d31d3b38c9b
-- github: konn/sized
-  commit: 10da0b1d44d2dadf39e2abbe86d6ae7ea0470ffe
+- ghc-typelits-presburger-0.3.0.0
+- type-natural-0.8.3.1
 - algebra-4.3.1@rev:2
+- sized-0.3.0.0
 - control-monad-loop-0.1
 - unamb-0.2.7
