@@ -150,10 +150,7 @@ multDiff deg f xs = case someNatVal (fromIntegral $ sum deg) of
     let ords = sliced deg $ map nthD $ enumOrdinal (sing @k)
         trms = SV.zipWithSame (\a b -> fromCoeff a + sum b) xs ords
     in SV.map
-      ( fromMaybe 0.0
-      . M.lookup (SV.replicate' @_ @k True)
-      . components
-      )
+      ( V.last . SV.unsized . runDuals )
      $ f trms
 
 instance (Floating a, KnownNat n) => SmoothRing (Duals n a) where
