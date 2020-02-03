@@ -1,11 +1,13 @@
-{-# LANGUAGE AllowAmbiguousTypes, BangPatterns, DataKinds, DeriveFoldable #-}
-{-# LANGUAGE DeriveFunctor, DeriveTraversable, DerivingVia                #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, GADTs, MagicHash        #-}
-{-# LANGUAGE MultiParamTypeClasses, ParallelListComp, PolyKinds           #-}
-{-# LANGUAGE RankNTypes, ScopedTypeVariables, TypeApplications            #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, UndecidableInstances            #-}
+{-# LANGUAGE AllowAmbiguousTypes, BangPatterns, ConstraintKinds, DataKinds #-}
+{-# LANGUAGE DeriveFoldable, DeriveFunctor, DeriveTraversable, DerivingVia #-}
+{-# LANGUAGE FlexibleContexts, FlexibleInstances, GADTs, MagicHash         #-}
+{-# LANGUAGE MultiParamTypeClasses, NoStarIsType, ParallelListComp         #-}
+{-# LANGUAGE PolyKinds, QuantifiedConstraints, RankNTypes                  #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeFamilies           #-}
+{-# LANGUAGE TypeOperators, UndecidableInstances                           #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 module Numeric.Algebra.Smooth.Dual where
 import qualified AlgebraicPrelude                   as AP
 import           Control.Lens
@@ -69,7 +71,7 @@ instance (Show a, Num a, Eq a) => Show (Dual' a) where
     shows a . showString " + " . showsPrec 11 b . showString " ε"
 
 instance Floating a => SmoothRing (Dual' a) where
-  liftSmooth = liftDual
+  liftSmooth = id
 
 liftDual
   :: (KnownNat n, Floating a)
@@ -133,261 +135,32 @@ instance Floating a => Floating (Dual' a) where
   acosh (Dual a da) = Dual (acosh a) (da / sqrt (a ^^ 2 - 1))
   atanh (Dual a da) = Dual (atanh a) (da / (1 - a ^^ 2))
 
-type family Duals' n a where
-  Duals' 0 a = a
-  Duals' n a = Dual' (Duals (n - 1) a)
-
--- | \(n\)-ary product of 'Dual' numbers,
---   which does not have mutual relation between
---   each distinct infinitesimals.
-newtype Duals n a = Duals { runDuals :: Duals' n a }
-  deriving
-    ( Additive, NA.Monoidal, NA.Group,
-      NA.Abelian, NA.Rig, NA.Commutative,
-      NA.Multiplicative, NA.Semiring,
-      NA.Unital, NA.Ring,
-      NA.LeftModule Natural, NA.RightModule Natural,
-      NA.LeftModule Integer, NA.RightModule Integer
-    ) via AP.WrapNum (Duals n a)
-
-instance (KnownNat n, Num a) => Num (Duals n a) where
-  fromInteger n =
-    case sing @n of
-      Zero -> Duals $ fromInteger n
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        Dual (fromInteger n :: Duals m a) 0
-  Duals a + Duals b =
-    case sing @n of
-      Zero -> Duals $ a + b
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-            g = unsafeCoerce b
-        in f + g
-  negate (Duals a) =
-    case sing @n of
-      Zero -> Duals $ negate a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in negate f
-  abs (Duals a) =
-    case sing @n of
-      Zero -> Duals $ abs a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in abs f
-  signum (Duals a) =
-    case sing @n of
-      Zero -> Duals $ signum a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in signum f
-  Duals a * Duals b =
-    case sing @n of
-      Zero -> Duals $ a * b
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-            g = unsafeCoerce b
-        in f * g
-  Duals a - Duals b =
-    case sing @n of
-      Zero -> Duals $ a - b
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-            g = unsafeCoerce b
-        in f - g
-
-instance (KnownNat n, Fractional a) => Fractional (Duals n a) where
-  fromRational r =
-    case sing @n of
-      Zero -> Duals $ fromRational r
-      Succ (sl :: Sing l) ->
-        Duals $ unsafeCoerce (fromRational r :: Dual' (Duals l a))
-  Duals a / Duals b =
-    case sing @n of
-      Zero -> Duals $ a / b
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-            g = unsafeCoerce b
-        in f / g
-  recip (Duals a) =
-    case sing @n of
-      Zero -> Duals $ recip a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in recip f
-
-instance (KnownNat n, Floating a) => Floating (Duals n a) where
-  sin (Duals a) =
-    case sing @n of
-      Zero -> Duals $ sin a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in sin f
-  cos (Duals a) =
-    case sing @n of
-      Zero -> Duals $ cos a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in cos f
-  tan (Duals a) =
-    case sing @n of
-      Zero -> Duals $ tan a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in tan f
-  asin (Duals a) =
-    case sing @n of
-      Zero -> Duals $ asin a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in asin f
-  acos (Duals a) =
-    case sing @n of
-      Zero -> Duals $ acos a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in acos f
-  atan (Duals a) =
-    case sing @n of
-      Zero -> Duals $ atan a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in atan f
-  exp (Duals a) =
-    case sing @n of
-      Zero -> Duals $ exp a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in exp f
-  log (Duals a) =
-    case sing @n of
-      Zero -> Duals $ log a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in log f
-  sinh (Duals a) =
-    case sing @n of
-      Zero -> Duals $ sinh a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in sinh f
-  cosh (Duals a) =
-    case sing @n of
-      Zero -> Duals $ cosh a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in cosh f
-  tanh (Duals a) =
-    case sing @n of
-      Zero -> Duals $ tanh a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in tanh f
-  asinh (Duals a) =
-    case sing @n of
-      Zero -> Duals $ asinh a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in asinh f
-  acosh (Duals a) =
-    case sing @n of
-      Zero -> Duals $ acosh a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in acosh f
-  atanh (Duals a) =
-    case sing @n of
-      Zero -> Duals $ atanh a
-      Succ (sm :: Sing m) -> Duals $ unsafeCoerce $
-        let f = unsafeCoerce a :: Dual' (Duals m a)
-        in atanh f
-  pi =
-    case sing @n of
-      Zero                -> Duals pi
-      Succ (sl :: Sing m) -> Duals $ unsafeCoerce (pi :: Dual' (Duals m a))
-
-
-
 monomIndices :: KnownNat n => Vec n Bool -> V.Vector Int
 monomIndices =
   V.map fst . V.filter snd . V.indexed . SV.unsized
 
-components
-  :: forall n a. (Eq a, Num a, KnownNat n) => Duals n a -> M.Map (Vec n Bool) a
-components (Duals a) =
-  case sing @n of
-    Zero -> M.singleton SV.empty a
-    Succ (sl :: Sing l) ->
-      let Dual f df = unsafeCoerce a :: Dual' (Duals l a)
-          leftDic = components f
-          rightDic = components df
-      in  M.filter (/= 0)
-        $ M.mapKeys (False SV.<|) leftDic
-            `M.union`
-          M.mapKeys (True SV.<|) rightDic
-
-instance (KnownNat n, Num a, Eq a, Show a) => Show (Duals n a) where
-  showsPrec d dn =
-    let terms = M.toList $ M.mapKeys monomIndices $ components dn
-    in if null terms
-    then showString "0"
-    else foldr1 (\a b -> a . showString " + " . b)
-          [ if null trm
-            then shows c
-            else showsPrec 11 c . showChar ' '
-               . showsTerm trm
-          | (trm, c) <- terms
-          , c /= 0
-          ]
-      where
-        showsTerm = foldr ((.) . (\i -> showString "d(" . shows i . showChar ')')) id
-
-dx :: forall k a n. (Num a, KnownNat k, KnownNat n, (k < n) ~ 'True)
-   => Duals n a
-dx =
-  case sing @n of
-    Succ (sn :: Sing m) ->
-      case zeroOrSucc $ sing @k of
-        IsZero                -> Duals $ unsafeCoerce $ Dual (0 :: Duals m a) 1
-        IsSucc (sl :: Sing l) ->
-          Duals $ unsafeCoerce $ Dual (dx @l :: Duals m a) 0
-
 nthD :: (Num a, KnownNat n) => Ordinal n -> Duals n a
-nthD (OLt (sn :: Sing k)) = withKnownNat sn $ dx @k
-
-fromCoeff :: forall n a. (Num a, KnownNat n) => a -> Duals n a
-fromCoeff c =
-  case sing @n of
-    Zero -> Duals c
-    Succ (sl :: Sing m) -> Duals $ unsafeCoerce
-      (Dual (fromCoeff @m c) 0)
+nthD (OLt (sn :: Sing k)) = withKnownNat sn $ dn @k
 
 multDiff
-  :: forall n a. (KnownNat n, Eq a, Floating a)
+  :: forall n m a. (KnownNat n, KnownNat m, Eq a, Floating a)
   => Vec n Word
-  -> (forall x. Floating x => Vec n x -> x)
-  -> Vec n a -> a
+  -> (forall x. Floating x => Vec n x -> Vec m x)
+  -> Vec n a -> Vec m a
 multDiff deg f xs = case someNatVal (fromIntegral $ sum deg) of
   SomeNat (_ :: Proxy k) -> withKnownNat (sing @k) $
     let ords = sliced deg $ map nthD $ enumOrdinal (sing @k)
         trms = SV.zipWithSame (\a b -> fromCoeff a + sum b) xs ords
-    in fromMaybe 0.0
-     $ M.lookup (SV.replicate' @_ @k True)
-     $ components
-     $ liftDuals f trms
+    in SV.map
+      ( fromMaybe 0.0
+      . M.lookup (SV.replicate' @_ @k True)
+      . components
+      )
+     $ f trms
 
 instance (Floating a, KnownNat n) => SmoothRing (Duals n a) where
-  liftSmooth = liftDuals
+  liftSmooth = id
 
-liftDuals
-  :: forall k a n. (Floating a, KnownNat k, KnownNat n)
-  => (forall x. Floating x => Vec k x -> x)
-  -> Vec k (Duals n a) -> Duals n a
-liftDuals f = case sing @n of
-      Zero -> f
-      Succ (_ :: Sing m) ->
-        \(xs :: Vec k (Duals n a)) ->
-          unsafeCoerce $ liftDual @k @(Duals m a) f $ unsafeCoerce xs
 
 sliced :: KnownNat n => Vec n Word -> [a] -> Vec n [a]
 sliced = loop
@@ -406,3 +179,137 @@ instance (KnownNat n, Fractional a)
       => NA.LeftModule (AP.WrapFractional Double) (Duals n a) where
   AP.WrapFractional x .* a =
     realToFrac x * a
+
+-- | \(n\)-ary product of 'Dual' numbers,
+--   which does not have mutual relation between
+--   each distinct infinitesimals.
+newtype Duals n a = Duals { runDuals :: Vec (2 ^ n) a }
+  deriving
+    ( Additive, NA.Monoidal, NA.Group,
+      NA.Abelian, NA.Rig, NA.Commutative,
+      NA.Multiplicative, NA.Semiring,
+      NA.Unital, NA.Ring,
+      NA.LeftModule Natural, NA.RightModule Natural,
+      NA.LeftModule Integer, NA.RightModule Integer
+    ) via AP.WrapNum (Duals n a)
+
+halve :: forall n a. KnownNat n => Vec (2 * n) a -> (Vec n a, Vec n a)
+halve xs =
+  let (ls, rs) = V.splitAt (fromIntegral $ natVal' @n proxy#) $ SV.unsized xs
+  in (SV.unsafeToSized' ls, SV.unsafeToSized' rs)
+
+liftUn
+  :: forall c n a.
+      ( KnownNat n,
+        forall k x. (KnownNat k, c x) => c (Duals k x) ,
+        forall x. c x => c (Dual' x),
+        c a
+      )
+  => (forall x. c x => x -> x)
+  -> Duals n a -> Duals n a
+liftUn f (Duals xs) = case sing @n of
+  Zero -> Duals $ SV.singleton $ f $ SV.head xs
+  Succ (n :: Sing k) ->
+    let (x, dx) = halve xs
+        Dual (Duals x') (Duals dx') = f $ Dual (Duals @k x) (Duals @k dx)
+    in Duals $ x' SV.++ dx'
+
+liftBin
+  :: forall c n a.
+      ( KnownNat n,
+        forall k x. (KnownNat k, c x) => c (Duals k x) ,
+        forall x. c x => c (Dual' x),
+        c a
+      )
+  => (forall x. c x => x -> x -> x)
+  -> Duals n a -> Duals n a -> Duals n a
+liftBin f (Duals xs) (Duals ys) = case sing @n of
+  Zero -> Duals $ SV.singleton $ f (SV.head xs) (SV.head ys)
+  Succ (n :: Sing k) ->
+    let (x, dx) = halve xs
+        (y, dy) = halve ys
+        Dual (Duals x') (Duals dx') =
+          f (Dual (Duals @k x) (Duals @k dx)) (Dual (Duals @k y) (Duals @k dy))
+    in Duals $ x' SV.++ dx'
+
+fromCoeff
+  :: forall n a. (KnownNat n, Num a) => a -> Duals n a
+fromCoeff = Duals . (SV.:< SV.replicate (sing @(2^n - 1)) 0)
+
+instance (KnownNat n, Num a) => Num (Duals n a) where
+  fromInteger = fromCoeff . fromInteger
+  (+) = liftBin @Num (+)
+  (*) = liftBin @Num (*)
+  (-) = liftBin @Num (-)
+  negate = liftUn @Num negate
+  abs = liftUn @Num abs
+  signum = liftUn @Num signum
+
+instance (KnownNat n, Fractional a) => Fractional (Duals n a) where
+  fromRational = fromCoeff . fromRational
+  recip = liftUn @Fractional recip
+  (/) = liftBin @Fractional (/)
+
+instance (KnownNat n, Floating a) => Floating (Duals n a) where
+  pi = fromCoeff pi
+  {-# INLINE pi #-}
+  exp = liftUn @Floating exp
+  log = liftUn @Floating log
+  sqrt = liftUn @Floating sqrt
+  (**) = liftBin @Floating (**)
+  logBase = liftBin @Floating logBase
+  sin = liftUn @Floating sin
+  cos = liftUn @Floating cos
+  tan = liftUn @Floating tan
+  asin = liftUn @Floating asin
+  acos = liftUn @Floating acos
+  atan = liftUn @Floating atan
+  sinh = liftUn @Floating sinh
+  cosh = liftUn @Floating cosh
+  tanh = liftUn @Floating tanh
+  asinh = liftUn @Floating asinh
+  acosh = liftUn @Floating acosh
+  atanh = liftUn @Floating atanh
+
+components
+  :: forall n a. (Eq a, Num a, KnownNat n)
+  => Duals n a -> M.Map (Vec n Bool) a
+components (Duals xs) =
+  case sing @n of
+    Zero ->
+      let c = SV.head xs
+      in if c == 0 then M.empty else M.singleton SV.empty c
+    Succ (l :: Sing l) ->
+      let (s, ds) = halve xs
+      in M.mapKeys (False SV.:<) (components $ Duals s)
+          `M.union`
+         M.mapKeys (True SV.:<) (components $ Duals ds)
+{-# INLINE components #-}
+
+instance (KnownNat n, Num a, Eq a, Show a) => Show (Duals n a) where
+  showsPrec d dn =
+    let terms = M.toList $ M.mapKeys monomIndices $ components dn
+    in if null terms
+    then showString "0"
+    else foldr1 (\a b -> a . showString " + " . b)
+          [ if null trm
+            then shows c
+            else showsPrec 11 c . showChar ' '
+               . showsTerm trm
+          | (trm, c) <- terms
+          ]
+      where
+        showsTerm = foldr ((.) . (\i -> showString "d(" . shows i . showChar ')')) id
+
+dn :: forall k n a. (Num a, KnownNat k, KnownNat n, (k < n) ~ 'True) => Duals n a
+dn =
+  let n = fromIntegral $ natVal' @n proxy#
+      k = fromIntegral $ natVal' @k proxy#
+      l = 2 ^ (n - k - 1)
+  in Duals $ SV.unsafeToSized' $ V.generate (2 ^ n) $ \i ->
+      if i == l then 1 else 0
+
+halveDs
+  :: KnownNat n => Duals (n + 1) a -> Dual' (Duals n a)
+halveDs =
+  uncurry Dual . (both %~ Duals) . halve . runDuals
