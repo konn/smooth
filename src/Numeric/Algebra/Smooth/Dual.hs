@@ -42,11 +42,9 @@ import           Numeric.Natural
 import           Proof.Propositional
 import           Unsafe.Coerce
 
-type Dual = Dual' Double
-
 -- | A ring \(\mathbb{R}[\epsilon] = \mathbb{R}[X]/X^2\) of dual numbers.
 -- Corresponding to the usual forward-mode automatic differentiation.
-data Dual' a = Dual { value :: !a, epsilon :: a }
+data Dual a = Dual { value :: !a, epsilon :: a }
   deriving (Functor, Foldable, Traversable, Eq)
   deriving
     ( Additive, NA.Monoidal, NA.Group,
@@ -55,29 +53,29 @@ data Dual' a = Dual { value :: !a, epsilon :: a }
       NA.Unital, NA.Ring,
       NA.LeftModule Natural, NA.RightModule Natural,
       NA.LeftModule Integer, NA.RightModule Integer
-    ) via AP.WrapNum (Dual' a)
+    ) via AP.WrapNum (Dual a)
 
-instance Fractional a => NA.RightModule (AP.WrapFractional Double) (Dual' a) where
+instance Fractional a => NA.RightModule (AP.WrapFractional Double) (Dual a) where
   Dual a da *. AP.WrapFractional x = Dual (a * realToFrac x) (da * realToFrac x)
 
-instance Fractional a => NA.LeftModule (AP.WrapFractional Double) (Dual' a) where
+instance Fractional a => NA.LeftModule (AP.WrapFractional Double) (Dual a) where
   AP.WrapFractional x .* Dual a da = Dual (realToFrac x * a) (realToFrac x * da)
 
-instance (Show a, Num a, Eq a) => Show (Dual' a) where
+instance (Show a, Num a, Eq a) => Show (Dual a) where
   showsPrec d (Dual a 0) = showsPrec d a
   showsPrec d (Dual 0 e) = showParen (d > 10) $
     showsPrec 11 e . showString " ε"
   showsPrec d (Dual a b) = showParen (d > 10) $
     shows a . showString " + " . showsPrec 11 b . showString " ε"
 
-instance Floating a => SmoothRing (Dual' a) where
+instance Floating a => SmoothRing (Dual a) where
   liftSmooth = id
 
 liftDual
   :: (KnownNat n, Floating a)
   => (forall a. Floating a => Vec n a -> a)
-  -> Vec n (Dual' a) -> Dual' a
-liftDual f (ds :: Vec n (Dual' a)) =
+  -> Vec n (Dual a) -> Dual a
+liftDual f (ds :: Vec n (Dual a)) =
     let reals = value <$> ds
         duals = epsilon <$> ds
         coes =
@@ -104,7 +102,7 @@ instance Algebra (AP.WrapFractional Double) DualsumBasis where
     f' R = fr
     f' D = fd
 
-instance Num a => Num (Dual' a) where
+instance Num a => Num (Dual a) where
   fromInteger n = Dual (fromInteger n) 0
   Dual a da + Dual b db = Dual (a + b) (da + db)
   Dual a da - Dual b db = Dual (a - b) (da - db)
@@ -113,12 +111,12 @@ instance Num a => Num (Dual' a) where
   abs (Dual a da) = Dual (abs a) (signum a)
   signum (Dual a da) = Dual (signum a) 0
 
-instance Fractional a => Fractional (Dual' a) where
+instance Fractional a => Fractional (Dual a) where
   fromRational = (`Dual` 0) . fromRational
   Dual x dx / Dual y dy = Dual (x / y) (dx / y - x * dy / (y * y))
   recip (Dual x dx) = Dual (recip x) (- dx / (x * x))
 
-instance Floating a => Floating (Dual' a) where
+instance Floating a => Floating (Dual a) where
   pi = Dual pi 0
   exp (Dual a da) = Dual (exp a) (da * exp a)
   sin (Dual a da) = Dual (sin a) (da * cos a)
@@ -161,7 +159,6 @@ multDiff deg f xs = case someNatVal (fromIntegral $ sum deg) of
 instance (Floating a, KnownNat n) => SmoothRing (Duals n a) where
   liftSmooth = id
 
-
 sliced :: KnownNat n => Vec n Word -> [a] -> Vec n [a]
 sliced = loop
   where
@@ -180,7 +177,7 @@ instance (KnownNat n, Fractional a)
   AP.WrapFractional x .* a =
     realToFrac x * a
 
--- | \(n\)-ary product of 'Dual' numbers,
+-- | \(n\)-ary product of 'Dual numbers,
 --   which does not have mutual relation between
 --   each distinct infinitesimals.
 newtype Duals n a = Duals { runDuals :: Vec (2 ^ n) a }
@@ -202,7 +199,7 @@ liftUn
   :: forall c n a.
       ( KnownNat n,
         forall k x. (KnownNat k, c x) => c (Duals k x) ,
-        forall x. c x => c (Dual' x),
+        forall x. c x => c (Dual x),
         c a
       )
   => (forall x. c x => x -> x)
@@ -218,7 +215,7 @@ liftBin
   :: forall c n a.
       ( KnownNat n,
         forall k x. (KnownNat k, c x) => c (Duals k x) ,
-        forall x. c x => c (Dual' x),
+        forall x. c x => c (Dual x),
         c a
       )
   => (forall x. c x => x -> x -> x)
@@ -286,6 +283,8 @@ components (Duals xs) =
          M.mapKeys (True SV.:<) (components $ Duals ds)
 {-# INLINE components #-}
 
+
+
 instance (KnownNat n, Num a, Eq a, Show a) => Show (Duals n a) where
   showsPrec d dn =
     let terms = M.toList $ M.mapKeys monomIndices $ components dn
@@ -310,6 +309,6 @@ dn =
       if i == l then 1 else 0
 
 halveDs
-  :: KnownNat n => Duals (n + 1) a -> Dual' (Duals n a)
+  :: KnownNat n => Duals (n + 1) a -> Dual (Duals n a)
 halveDs =
   uncurry Dual . (both %~ Duals) . halve . runDuals
