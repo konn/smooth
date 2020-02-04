@@ -195,7 +195,7 @@ halve xs =
 liftUn
   :: forall c n a.
       ( KnownNat n,
-        forall k x. (KnownNat k, c x) => c (Duals k x) ,
+        forall k x. (KnownNat k, c x, (k < n) ~ 'True) => c (Duals k x) ,
         forall x. c x => c (Dual x),
         c a
       )
@@ -211,7 +211,7 @@ liftUn f (Duals xs) = case sing @n of
 liftBin
   :: forall c n a.
       ( KnownNat n,
-        forall k x. (KnownNat k, c x) => c (Duals k x) ,
+        forall k x. (KnownNat k, c x, (k < n) ~ 'True) => c (Duals k x) ,
         forall x. c x => c (Dual x),
         c a
       )
