@@ -2,7 +2,8 @@
 {-# LANGUAGE GADTs, MultiParamTypeClasses, PolyKinds, RankNTypes         #-}
 {-# LANGUAGE ScopedTypeVariables, TypeFamilies, TypeOperators            #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}module Numeric.Algebra.Smooth.Classes where
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
+module Numeric.Algebra.Smooth.Classes where
 import           Algebra.Ring.Polynomial
 import           AlgebraicPrelude                   (WrapFractional)
 import qualified AlgebraicPrelude                   as AP
