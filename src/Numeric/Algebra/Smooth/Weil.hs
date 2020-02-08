@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeFamilies, UndecidableInstances, ViewPatterns              #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Numeric.Algebra.Smooth.Weil
-  ( Weil(Weil), toWeil, isWeil, weilToPoly
+  ( Weil(Weil), weilToVector, toWeil, isWeil, weilToPoly
   ) where
 import           Algebra.Algorithms.Groebner
 import           Algebra.Algorithms.Groebner.Signature.Rules ()
@@ -200,10 +200,6 @@ weilToPoly (Weil cs) =
           weilBasis
           cs
 
-di :: (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
-   => SV.Ordinal n -> Weil s r
-di ord = Weil $ diag ord
-
 toWeil
   :: forall n r s m. (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
   => PowerSeries n r -> Weil s r
@@ -314,6 +310,9 @@ instance PrettyCoeff Double where
 -- | @'Weil' 'D1' r@ Corresponds to @'Dual' r@ numbers;
 --   Just \(\mathbb{R}[X]/X^2\).
 data D1
+
+weilToVector :: Weil s r -> Vector r
+weilToVector = runWeil_
 
 instance Reifies D1 (WeilSettings 2 1) where
   reflect = const $
