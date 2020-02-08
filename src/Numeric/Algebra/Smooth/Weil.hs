@@ -6,7 +6,9 @@
 {-# LANGUAGE TypeFamilies, UndecidableInstances, ViewPatterns              #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Numeric.Algebra.Smooth.Weil
-  ( Weil(Weil), weilToVector, toWeil, isWeil, weilToPoly
+  ( Weil(Weil), weilToVector
+  , toWeil, isWeil
+  , weilToPoly, polyToWeil
   ) where
 import           Algebra.Algorithms.Groebner
 import           Algebra.Algorithms.Groebner.Signature.Rules ()
@@ -130,11 +132,7 @@ instance (KnownNat n, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)
               | (fromEnum -> i, c) <- itoList f
               , (fromEnum -> j, d) <- itoList g
               ]
-        in Weil
-          $ SV.map
-          (\m -> unwrapFractional
-               $ coeff' (SV.map fromIntegral m) a)
-          weilBasis
+        in polyToWeil a
 
   abs = liftUnary abs
   signum = liftUnary signum
@@ -181,6 +179,19 @@ instance
             vs
       in toWeil $ liftSmooth f vs'
 
+polyToWeil
+  :: forall s r n m.
+       (KnownNat m, Eq r, KnownNat n, Reifies s (WeilSettings m n), Num r)
+  => Polynomial (WrapFractional r) n -> Weil s r
+polyToWeil a =
+  case reflect @s Proxy of
+    WeilSettings{..} ->
+      Weil
+      $ SV.map
+          (\m -> unwrapFractional
+               $ coeff' (SV.map fromIntegral m) a)
+          weilBasis
+
 weilToPoly
   :: forall s r n m.
      (KnownNat m, Eq r, KnownNat n, Reifies s (WeilSettings m n), Fractional r)
@@ -199,6 +210,18 @@ weilToPoly (Weil cs) =
           )
           weilBasis
           cs
+
+-- | @i@ th base of Weil algebra.
+--
+--   @ei 0@ is just the real part.
+ei :: (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
+   => SV.Ordinal m -> Weil s r
+ei ord = Weil $ diag ord
+
+-- | @i@ th infinitesimal of Weil algebra.
+di :: (Eq r, Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
+   => SV.Ordinal n -> Weil s r
+di = polyToWeil . var
 
 toWeil
   :: forall n r s m. (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
