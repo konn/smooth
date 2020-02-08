@@ -1,16 +1,18 @@
-{-# LANGUAGE DataKinds, DerivingVia, FlexibleContexts, FlexibleInstances #-}
-{-# LANGUAGE GADTs, MultiParamTypeClasses, PolyKinds, RankNTypes         #-}
-{-# LANGUAGE ScopedTypeVariables, TypeFamilies, TypeOperators            #-}
+{-# LANGUAGE DataKinds, DerivingVia, ExplicitNamespaces, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, GADTs, MultiParamTypeClasses              #-}
+{-# LANGUAGE PatternSynonyms, PolyKinds, RankNTypes, ScopedTypeVariables  #-}
+{-# LANGUAGE TypeFamilies, TypeOperators                                  #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 module Numeric.Algebra.Smooth.Classes where
 import           Algebra.Ring.Polynomial
 import           AlgebraicPrelude                   (WrapFractional)
 import qualified AlgebraicPrelude                   as AP
-import           Control.Lens
+import           Control.Lens                       hiding ((:<))
 import           Data.Map                           (Map)
 import           Data.Proxy
 import           Data.Singletons.Prelude            hiding (type (+), type (-))
+import           Data.Sized.Builtin                 (pattern (:<), pattern NilR)
 import           Data.Sized.Builtin                 (Sized)
 import qualified Data.Sized.Builtin                 as SV
 import           Data.Type.Natural.Builtin
@@ -63,3 +65,12 @@ liftUnary
   => (forall a. Floating a => a -> a)
   -> w -> w
 liftUnary f = liftSmooth (f . SV.head) . SV.singleton
+
+liftBinary
+  :: (SmoothRing w)
+  => (forall a. Floating a => a -> a -> a)
+  -> w -> w -> w
+{-# INLINE liftBinary #-}
+liftBinary f =
+  \a b -> liftSmooth (\(x :< y :< NilR) -> f x y) $ a :< b :< NilR
+

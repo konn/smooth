@@ -2,14 +2,17 @@
 {-# LANGUAGE DeriveGeneric, DerivingVia, FlexibleContexts                  #-}
 {-# LANGUAGE FlexibleInstances, GADTs, LambdaCase, MultiParamTypeClasses   #-}
 {-# LANGUAGE PolyKinds, QuantifiedConstraints, RankNTypes                  #-}
-{-# LANGUAGE ScopedTypeVariables, TypeApplications                         #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, ViewPatterns           #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 module Numeric.Algebra.Smooth.PowerSeries where
 import qualified AlgebraicPrelude                   as AP
 import           Control.Lens
+import           Control.Monad
 import           Data.Coerce
+import           Data.Monoid                        (Product (..))
 import           Data.Profunctor
+import qualified Data.Sequence                      as Seq
 import           Data.Singletons.Prelude
 import qualified Data.Sized.Builtin                 as SV
 import           Data.Type.Natural.Class.Arithmetic (ZeroOrSucc (..),
@@ -51,6 +54,16 @@ formalDiff
 formalDiff =
   Series . tail . imap (\i c -> fromIntegral i * c ) . runSeries
 
+formalNDiff
+  :: forall n a. (KnownNat n, Num a)
+  => Vec n Word -> PowerSeries n a -> PowerSeries n a
+formalNDiff pows (Powers f) = Powers $ \pows' ->
+    fromIntegral (alaf Product foldMap factorial pows)
+   * f (SV.zipWithSame (+) pows pows')
+
+factorial :: Word -> Word
+factorial = product . enumFromTo 1
+
 constTerm :: Series c -> c
 constTerm = head . runSeries
 
@@ -74,6 +87,14 @@ instance (Floating a, Eq a)
       => NA.RightModule (AP.WrapFractional Double) (Series a) where
   Series xs *. AP.WrapFractional a = coerce $ map (* realToFrac a) xs
 
+instance (KnownNat n, Floating a, Eq a)
+      => NA.LeftModule (AP.WrapFractional Double) (PowerSeries n a) where
+  (.*) (AP.WrapFractional a) = coerce $ fmap @((->) (Vec n Word)) @a (realToFrac a *)
+
+instance (KnownNat n, Floating a, Eq a)
+      => NA.RightModule (AP.WrapFractional Double) (PowerSeries n a) where
+  Powers f *. AP.WrapFractional a = Powers $ \x -> f x * realToFrac a
+
 instance (Floating a, Eq a) => SmoothRing (Series a) where
   liftSmooth f vs = Series $ go 0 1.0 (DiffFun $ SV.replicate' 0)
     where
@@ -83,13 +104,14 @@ instance (Floating a, Eq a) => SmoothRing (Series a) where
 diag :: (Num a, KnownNat n) => SV.Ordinal n -> Vec n a
 diag i = SV.generate sing $ \j -> if i == j then 1 else 0
 
-data Tree n a
-  = Mul !(Tree n a) !(Tree n a)
-  | Add !(Tree n a) !(Tree n a)
-  | DiffArg !Word !(SV.Ordinal n)
+data MTree m n a
+  = Mul !(MTree m n a) !(MTree m n a)
+  | Add !(MTree m n a) !(MTree m n a)
+  | DiffArg !(Vec m Word) !(SV.Ordinal n)
   | DiffFun !(Vec n Word)
   | K !a
     deriving (Eq, Ord)
+type Tree = MTree 1
 
 instance (KnownNat n, Show a) => Show (Tree n a) where
   showsPrec d (K a) = showsPrec d a
@@ -97,12 +119,40 @@ instance (KnownNat n, Show a) => Show (Tree n a) where
     showsPrec 11 l . showString " * " . showsPrec 11 r
   showsPrec d (Add l r) = showParen (d > 10) $
     showsPrec 10 l . showString " + " . showsPrec 10 r
-  showsPrec _ (DiffArg 0 i) =
+  showsPrec _ (DiffArg (SV.head -> 0) i) =
     showString "g_" . shows (fromEnum i)
-  showsPrec _ (DiffArg 1 i) =
+  showsPrec _ (DiffArg (SV.head -> 1) i) =
     showString "d g_" . shows (fromEnum i)
-  showsPrec d (DiffArg k i) = showParen (d > 9) $
+  showsPrec d (DiffArg (SV.head -> k) i) = showParen (d > 9) $
     showString "d^" . shows k . showString " g_" . shows (fromEnum i)
+  showsPrec d (DiffFun pows)
+    | all (== 0) pows = showChar 'f'
+    | otherwise =
+      let ps = SV.unsized pows
+      in showString "D("
+        . V.foldr1 (\a b -> a . showString ", " . b) (V.map shows ps)
+        . showString ") f"
+
+instance {-# OVERLAPPABLE #-}
+  ( KnownNat m, KnownNat n, Show a
+  ) => Show (MTree m n a) where
+  showsPrec d (K a) = showsPrec d a
+  showsPrec d (Mul l r) = showParen (d > 11) $
+    showsPrec 11 l . showString " * " . showsPrec 11 r
+  showsPrec d (Add l r) = showParen (d > 10) $
+    showsPrec 10 l . showString " + " . showsPrec 10 r
+  showsPrec d (DiffArg ds i)
+    | all (== 0) ds = showString "g_" . shows (fromEnum i)
+    | otherwise = showParen (d > 9) $
+        let pow = V.imapMaybe
+                (\i p -> do
+                    guard $ p /= 0
+                    pure $ showString "d_" . shows i
+                      . showChar '^' . shows p
+                )
+              $ SV.unsized ds
+        in foldr1 (\a b -> a . showString " " . b) pow
+          . showString " g_" . shows (fromEnum i)
   showsPrec d (DiffFun pows)
     | all (== 0) pows = showChar 'f'
     | otherwise =
@@ -119,7 +169,7 @@ evalTree
   -> a
 evalTree (Mul l r) f vs = evalTree l f vs * evalTree r f vs
 evalTree (Add l r) f vs = evalTree l f vs + evalTree r f vs
-evalTree (DiffArg k i) f vs =
+evalTree (DiffArg (SV.head -> k) i) f vs =
   constTerm
   $ foldr (.) id (replicate (fromIntegral k) formalDiff)
   $ vs SV.%!! i
@@ -128,7 +178,27 @@ evalTree (DiffFun pows) f vs =
   SV.map constTerm vs
 evalTree (K a) _ _ = a
 
-instance (Num a, Eq a) => Num (Tree n a) where
+constPTerm :: KnownNat n => PowerSeries n a -> a
+constPTerm = ($ SV.replicate' 0) . getCoeff
+
+evalMTree
+  :: (KnownNat m, KnownNat n, Floating a, Eq a)
+  => MTree m n a
+  -> (forall x. Floating x => Vec n x -> x)
+  -> Vec n (PowerSeries m a)
+  -> a
+evalMTree (Mul l r) f vs = evalMTree l f vs * evalMTree r f vs
+evalMTree (Add l r) f vs = evalMTree l f vs + evalMTree r f vs
+evalMTree (DiffArg pow i) f vs =
+  constPTerm
+  $ formalNDiff pow
+  $ vs SV.%!! i
+evalMTree (DiffFun pows) f vs =
+  SV.head $ multDiff pows (SV.singleton . f) $
+  SV.map constPTerm vs
+evalMTree (K a) _ _ = a
+
+instance (Num a, Eq a) => Num (MTree m n a) where
   fromInteger = K . fromInteger
   K 0 + x = x
   x + K 0 = x
@@ -143,21 +213,35 @@ instance (Num a, Eq a) => Num (Tree n a) where
   signum = error "No signum for Tree"
 
 diffTree
-  :: forall n a. (KnownNat n, Eq a, Num a)
+  :: (KnownNat n, Eq a, Num a)
   => Tree n a -> Tree n a
-diffTree (Mul l r) =
-  diffTree l * r + l * diffTree r
-diffTree (Add l r) = diffTree l + diffTree r
-diffTree (DiffArg k i) = DiffArg (k + 1) i
-diffTree K{} = K 0
-diffTree (DiffFun pow) =
+diffTree = diffTree' 0
+
+diffTree'
+  :: forall m n a. (KnownNat m, KnownNat n, Eq a, Num a)
+  => Ordinal m -> MTree m n a -> MTree m n a
+diffTree' o (Mul l r) =
+  diffTree' o l * r + l * diffTree' o r
+diffTree' o (Add l r) = diffTree' o l + diffTree' o r
+diffTree' o (DiffArg k i) = DiffArg (k & ix o +~ 1) i
+diffTree' o K{} = K 0
+diffTree' o (DiffFun pow) =
   sum
-    [ DiffFun (pow & ix i +~ 1) * DiffArg 1 i
-    | i <- enumOrdinal sing
+    [ DiffFun (pow & ix i +~ 1) *
+        sum [ DiffArg (diag j) i
+            | j <- enumOrdinal @m sing
+            ]
+    | i <- enumOrdinal @n sing
     ]
 
 injectCoeSer :: Num a => a -> Series a
 injectCoeSer = Series . (: repeat 0)
+
+injectCoePS :: Num k => k -> PowerSeries n k
+injectCoePS a = Powers $ \x ->
+  if all (== 0) x
+  then a
+  else 0
 
 instance (Floating a, Eq a) => Num (Series a) where
   fromInteger = Series . (: repeat 0) . fromInteger
@@ -172,39 +256,26 @@ instance (Eq a, Floating a) => Fractional (Series a) where
   fromRational = injectCoeSer . fromRational
   recip = liftSmooth (recip . SV.head) . SV.singleton
 
-liftUnSeries
-  :: (Floating a, Eq a)
-  => (forall x. Floating x => x -> x)
-  -> Series a -> Series a
-liftUnSeries f = liftSmooth (f . SV.head) . SV.singleton
-
-liftBinSeries
-  :: (Floating a, Eq a)
-  => (forall x. Floating x => x -> x-> x)
-  -> Series a -> Series a -> Series a
-liftBinSeries f = \x y ->
-  liftSmooth (\xs -> f (xs SV.%!! 0) (xs SV.%!! 1)) (x SV.:< y SV.:< SV.NilR)
-
 instance (Eq a, Floating a) => Floating (Series a) where
-  log = liftUnSeries log
-  logBase = liftBinSeries logBase
-  exp = liftUnSeries exp
-  (**) = liftBinSeries (**)
+  log = liftUnary log
+  logBase = liftBinary logBase
+  exp = liftUnary exp
+  (**) = liftBinary (**)
 
   pi = injectCoeSer pi
-  sin = liftUnSeries sin
-  cos = liftUnSeries cos
-  tan = liftUnSeries tan
-  asin = liftUnSeries asin
-  acos = liftUnSeries acos
-  atan = liftUnSeries atan
+  sin = liftUnary sin
+  cos = liftUnary cos
+  tan = liftUnary tan
+  asin = liftUnary asin
+  acos = liftUnary acos
+  atan = liftUnary atan
 
-  sinh = liftUnSeries sinh
-  cosh = liftUnSeries cosh
-  tanh = liftUnSeries tanh
-  asinh = liftUnSeries asinh
-  acosh = liftUnSeries acosh
-  atanh = liftUnSeries atanh
+  sinh = liftUnary sinh
+  cosh = liftUnary cosh
+  tanh = liftUnary tanh
+  asinh = liftUnary asinh
+  acosh = liftUnary acosh
+  atanh = liftUnary atanh
 
 -- | Shows only first 10  terms.
 instance (Show a, Num a, Eq a) => Show (Series a) where
@@ -223,6 +294,14 @@ cutoffUn :: forall a. Int -> Series a -> Series a
 cutoffUn = coerce . take @a
 
 newtype PowerSeries n k = Powers { getCoeff :: Vec n Word -> k }
+  deriving
+    ( NA.Additive, NA.Monoidal, NA.Group,
+      NA.Abelian, NA.Rig, NA.Commutative,
+      NA.Multiplicative, NA.Semiring,
+      NA.Unital, NA.Ring,
+      NA.LeftModule Natural, NA.RightModule Natural,
+      NA.LeftModule Integer, NA.RightModule Integer
+    ) via AP.WrapNum (PowerSeries n k)
 
 monomsOfDeg
   :: forall n. KnownNat n => Word -> [Vec n Word]
@@ -245,3 +324,59 @@ terms (Powers f) =
     | k <- [0..]
     , m <- monomsOfDeg k
     ]
+
+instance (KnownNat n, Floating a, Eq a) => Num (PowerSeries n a) where
+  fromInteger x = Powers $ \a ->
+    if all (== 0) a
+    then fromInteger x
+    else 0
+  Powers f + Powers g = Powers $ \a -> f a + g a
+  Powers f - Powers g = Powers $ \a -> f a - g a
+  negate (Powers f) = Powers $ negate . f
+  Powers f * Powers g = Powers $ \a ->
+    sum [ f v * g (SV.zipWithSame (-) a v)
+        | v <- traverse (enumFromTo 0) a
+        ]
+  abs = liftSmooth (abs . SV.head) . SV.singleton
+  signum = liftSmooth (signum . SV.head) . SV.singleton
+
+instance (KnownNat n, Floating a, Eq a)
+      => Fractional (PowerSeries n a) where
+  recip = liftUnary recip
+  (/) = liftBinary (/)
+  fromRational x = Powers $ \a ->
+    if all (== 0) a
+    then fromRational x
+    else 0
+
+instance (KnownNat n, Floating a, Eq a)
+      => SmoothRing (PowerSeries n a) where
+  liftSmooth f vs = Powers $ \degs ->
+    evalMTree
+      (foldr (.) id
+        (fmap diffTree' (ifoldMap (flip $ Seq.replicate . fromIntegral) degs))
+        (DiffFun (SV.replicate' 0)))
+      f vs
+    / fromIntegral (alaf Product foldMap factorial degs)
+
+instance (Eq a, Floating a, KnownNat n)
+      => Floating (PowerSeries n a) where
+  log = liftUnary log
+  logBase = liftBinary logBase
+  exp = liftUnary exp
+  (**) = liftBinary (**)
+
+  pi = injectCoePS pi
+  sin = liftUnary sin
+  cos = liftUnary cos
+  tan = liftUnary tan
+  asin = liftUnary asin
+  acos = liftUnary acos
+  atan = liftUnary atan
+
+  sinh = liftUnary sinh
+  cosh = liftUnary cosh
+  tanh = liftUnary tanh
+  asinh = liftUnary asinh
+  acosh = liftUnary acosh
+  atanh = liftUnary atanh
