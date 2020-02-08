@@ -1,11 +1,13 @@
 {-# LANGUAGE AllowAmbiguousTypes, BangPatterns, ConstraintKinds, DataKinds #-}
-{-# LANGUAGE DeriveGeneric, DerivingVia, FlexibleContexts                  #-}
+{-# LANGUAGE DeriveFunctor, DeriveGeneric, DerivingVia, FlexibleContexts   #-}
 {-# LANGUAGE FlexibleInstances, GADTs, LambdaCase, MultiParamTypeClasses   #-}
 {-# LANGUAGE PolyKinds, QuantifiedConstraints, RankNTypes                  #-}
 {-# LANGUAGE ScopedTypeVariables, TypeApplications, ViewPatterns           #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 module Numeric.Algebra.Smooth.PowerSeries where
+import           Algebra.Ring.Polynomial            (IsPolynomial)
+import qualified Algebra.Ring.Polynomial            as Pol
 import qualified AlgebraicPrelude                   as AP
 import           Control.Lens
 import           Control.Monad
@@ -294,6 +296,7 @@ cutoffUn :: forall a. Int -> Series a -> Series a
 cutoffUn = coerce . take @a
 
 newtype PowerSeries n k = Powers { getCoeff :: Vec n Word -> k }
+  deriving (Functor)
   deriving
     ( NA.Additive, NA.Monoidal, NA.Group,
       NA.Abelian, NA.Rig, NA.Commutative,
@@ -380,3 +383,8 @@ instance (Eq a, Floating a, KnownNat n)
   asinh = liftUnary asinh
   acosh = liftUnary acosh
   atanh = liftUnary atanh
+
+injPoly
+  :: IsPolynomial r => r -> PowerSeries (Pol.Arity r) (Pol.Coefficient r)
+injPoly p = Powers $ \a ->
+  Pol.coeff' (convVec $ fmap fromIntegral a) p

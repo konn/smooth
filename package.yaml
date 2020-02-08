@@ -39,6 +39,7 @@ dependencies:
 - foldl
 - halg-algorithms
 - profunctors
+- ListLike
 
 library:
   source-dirs: src
