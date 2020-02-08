@@ -17,6 +17,6 @@ type Vec n a = Sized Vector n a
 type UVec n a = Sized U.Vector n a
 
 convVec
-  :: (G.Vector v a, G.Vector u a, KnownNat n, ListLike (u a) a)
+  :: forall u v n a. (G.Vector v a, G.Vector u a, KnownNat n, ListLike (u a) a)
   => Sized v n a -> Sized u n a
 convVec = SV.unsafeToSized' . G.convert . SV.unsized
