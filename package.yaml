@@ -38,6 +38,7 @@ dependencies:
 - containers
 - foldl
 - halg-algorithms
+- profunctors
 
 library:
   source-dirs: src

@@ -140,18 +140,38 @@ monomIndices =
 nthD :: (Num a, KnownNat n) => Ordinal n -> Duals n a
 nthD (OLt (sn :: Sing k)) = withKnownNat sn $ dn @k
 
-multDiff
-  :: forall n m a. (KnownNat n, KnownNat m, Eq a, Floating a)
-  => Vec n Word
+withPows
+  :: forall n m a r. (KnownNat n, KnownNat m, Eq a, Floating a)
+  => (forall k. KnownNat k => Vec n Word -> Vec m (Duals k a) -> r)
+  -> Vec n Word
   -> (forall x. Floating x => Vec n x -> Vec m x)
-  -> Vec n a -> Vec m a
-multDiff deg f xs = case someNatVal (fromIntegral $ sum deg) of
+  -> Vec n a
+  -> r
+withPows k deg f xs = case someNatVal (fromIntegral $ sum deg) of
   SomeNat (_ :: Proxy k) -> withKnownNat (sing @k) $
     let ords = sliced deg $ map nthD $ enumOrdinal (sing @k)
         trms = SV.zipWithSame (\a b -> fromCoeff a + sum b) xs ords
-    in SV.map
-      ( V.last . SV.unsized . runDuals )
-     $ f trms
+    in k deg $ f trms
+{-# INLINE withPows #-}
+
+multDiff
+  :: (KnownNat n, KnownNat m, Eq a, Floating a)
+  => Vec n Word
+  -> (forall x. Floating x => Vec n x -> Vec m x)
+  -> Vec n a -> Vec m a
+multDiff = withPows $ const $
+  SV.map
+    ( V.last . SV.unsized . runDuals )
+
+-- | @'multDiffUpTo' ds f u@ retruns all partial differential
+--   coefficients by \(\alpha \leq w\).
+multDiffUpTo
+  :: forall n m a. (KnownNat n, KnownNat m, Eq a, Floating a)
+  => Vec n Word
+  -> (forall x. Floating x => Vec n x -> Vec m x)
+  -> Vec n a -> M.Map (Vec n Word) (Vec m a)
+multDiffUpTo = withPows $ \pows (ds :: Vec m (Duals k a)) ->
+  undefined
 
 instance (Floating a, KnownNat n) => SmoothRing (Duals n a) where
   liftSmooth = id
