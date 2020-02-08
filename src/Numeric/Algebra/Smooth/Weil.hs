@@ -1,11 +1,12 @@
 {-# LANGUAGE AllowAmbiguousTypes, DataKinds, DerivingVia, FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances, GADTs, LambdaCase, MultiParamTypeClasses   #-}
-{-# LANGUAGE NoImplicitPrelude, PatternSynonyms, RankNTypes                #-}
-{-# LANGUAGE RecordWildCards, ScopedTypeVariables, StandaloneDeriving      #-}
-{-# LANGUAGE TypeApplications, TypeFamilies, UndecidableInstances          #-}
-{-# LANGUAGE ViewPatterns                                                  #-}
+{-# LANGUAGE FlexibleInstances, GADTs, GeneralizedNewtypeDeriving          #-}
+{-# LANGUAGE LambdaCase, MultiParamTypeClasses, NoImplicitPrelude          #-}
+{-# LANGUAGE PatternSynonyms, RankNTypes, RecordWildCards                  #-}
+{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving, TypeApplications     #-}
+{-# LANGUAGE TypeFamilies, UndecidableInstances, ViewPatterns              #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 module Numeric.Algebra.Smooth.Weil
-  ( Weil(Weil), toWeil, isWeil
+  ( Weil(Weil), toWeil, isWeil, weilToPoly
   ) where
 import           Algebra.Algorithms.Groebner
 import           Algebra.Algorithms.Groebner.Signature.Rules ()
@@ -14,19 +15,20 @@ import           Algebra.Ring.Ideal
 import           Algebra.Ring.Polynomial
 import           Algebra.Ring.Polynomial.Quotient
 import           AlgebraicPrelude
-import           Control.Lens
+import           Control.Lens                                hiding ((:<))
 import           Data.Coerce
 import qualified Data.Foldable                               as F
 import qualified Data.HashMap.Strict                         as HM
 import qualified Data.HashSet                                as HS
 import qualified Data.Map.Strict                             as Map
-import           Data.Monoid
 import           Data.MonoTraversable
 import           Data.Proxy
 import qualified Data.Ratio                                  as R
 import           Data.Reflection
 import           Data.Singletons.Prelude                     (sing)
 import           Data.Singletons.TypeLits                    (withKnownNat)
+import           Data.Sized                                  (pattern (:<),
+                                                              pattern NilR)
 import qualified Data.Sized.Builtin                          as SV
 import qualified Data.Vector.Unboxed                         as U
 import           GHC.TypeNats
@@ -124,9 +126,9 @@ instance (KnownNat n, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)
               [ injectCoeff (WrapFractional $ c P.* d)
                   *
                 mapCoeff fromRational'
-                  (table HM.! (fromEnum i, fromEnum j))
-              | (i, c) <- itoList f
-              , (j, d) <- itoList g
+                  (table HM.! (min i j, max i j))
+              | (fromEnum -> i, c) <- itoList f
+              , (fromEnum -> j, d) <- itoList g
               ]
         in Weil
           $ SV.map
@@ -170,29 +172,37 @@ instance
   ( KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)
   ) => SmoothRing (Weil s r) where
     liftSmooth f (vs :: KnownNat k => Vec k (Weil s r)) =
-      case reflect @s Proxy of
-        ws@WeilSettings{..} ->
-          let vs' :: Vec k (PowerSeries m r)
-              vs' = SV.map
-                (\case
-                    Weil cs ->
-                      coerce @_ @(PowerSeries _ r)
-                        $ injPoly
-                        $ sum
-                        $ SV.zipWithSame
-                            (\m c ->
-                                polynomial' @(Polynomial (WrapFractional r) _)
-                                $ Map.fromList
-                                [ ( SV.map fromIntegral m,
-                                    WrapFractional c
-                                  )
-                                ]
-                            )
-                            weilBasis
-                            cs
+      let vs' :: Vec k (PowerSeries m r)
+          vs' = SV.map
+            ( coerce @_ @(PowerSeries _ r)
+            . injPoly
+            . weilToPoly
+            )
+            vs
+      in toWeil $ liftSmooth f vs'
+
+weilToPoly
+  :: forall s r n m.
+     (KnownNat m, Eq r, KnownNat n, Reifies s (WeilSettings m n), Fractional r)
+  => Weil s r -> Polynomial (WrapFractional r) n
+weilToPoly (Weil cs) =
+  case reflect @s Proxy of
+    WeilSettings{..} -> sum
+      $ SV.zipWithSame
+          (\m c ->
+              polynomial' @(Polynomial (WrapFractional r) _)
+              $ Map.fromList
+              [ ( SV.map fromIntegral m,
+                  WrapFractional c
                 )
-                vs
-          in toWeil $ liftSmooth f vs'
+              ]
+          )
+          weilBasis
+          cs
+
+di :: (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
+   => SV.Ordinal n -> Weil s r
+di ord = Weil $ diag ord
 
 toWeil
   :: forall n r s m. (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
@@ -215,8 +225,10 @@ instance (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)
 
 
 
-data SomeWeilSettings where
-  SomeWeil :: (KnownNat n, KnownNat m) => WeilSettings n m -> SomeWeilSettings
+data SomeWeilSettings m where
+  SomeWeil :: (KnownNat n, KnownNat m) => WeilSettings n m -> SomeWeilSettings m
+
+deriving instance Show (SomeWeilSettings m)
 
 data WeilSettings m n where
   WeilSettings
@@ -227,10 +239,40 @@ data WeilSettings m n where
     }
     -> WeilSettings m n
 
+deriving instance Show (WeilSettings m n)
+
+
+instance
+    ( PrettyCoeff (WrapFractional r), KnownNat n, KnownNat m,
+      Eq r, Fractional r,
+      Reifies s (WeilSettings n m)
+    )
+  => Show (Weil s r) where
+  showsPrec d w =
+    showsPolynomialWith'
+    False
+    showsCoeff
+    (SV.generate sing $ \i ->
+      "d(" ++ show (fromEnum i) ++ ")"
+    )
+    d
+    $ weilToPoly w
+
+reifyWeil
+  :: KnownNat n
+  => Ideal (Polynomial Rational n)
+  -> (forall m s. Reifies s (WeilSettings m n) =>
+        Proxy s -> r
+     )
+  -> Maybe r
+reifyWeil i f = do
+  SomeWeil (ws :: WeilSettings m n) <- isWeil i
+  pure $ reify ws f
+
 isWeil
   :: KnownNat n
   => Ideal (Polynomial Rational n)
-  -> Maybe SomeWeilSettings
+  -> Maybe (SomeWeilSettings n)
 isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
   qBasis0 <-
      V.fromList
@@ -247,6 +289,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
               <- V.toList $ V.indexed weilBasis0
           , (j, SV.map fromIntegral -> n)
               <- V.toList $ V.indexed weilBasis0
+          , i <= j
           , let c = quotRepr $ modIdeal' p (fromMonomial m * fromMonomial n)
           ]
       rootI = radical $ mapIdeal convertPolynomial ps
@@ -259,3 +302,23 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
   case SV.toSomeSized weilBasis0 of
     SV.SomeSized sn weilBasis -> withKnownNat sn $
       pure $ SomeWeil WeilSettings{..}
+
+deriving newtype instance (PrettyCoeff a) => PrettyCoeff (WrapFractional a)
+instance PrettyCoeff Double where
+  showsCoeff d r
+    | r < 0 = Negative $ Just $ showsPrec d $ abs r
+    | r == 0 = Vanished
+    | r == 1 = OneCoeff
+    | otherwise = Positive $ showsPrec d r
+
+-- | @'Weil' 'D1' r@ Corresponds to @'Dual' r@ numbers;
+--   Just \(\mathbb{R}[X]/X^2\).
+data D1
+
+instance Reifies D1 (WeilSettings 2 1) where
+  reflect = const $
+    WeilSettings
+    { weilBasis = SV.singleton 0 :< SV.singleton 1 :< NilR
+    , monomUpperBound = SV.singleton 1
+    , table = HM.fromList [((0,0), one), ((0, 1), var 0), ((1,1), zero)]
+    }
