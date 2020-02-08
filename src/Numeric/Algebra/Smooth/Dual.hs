@@ -13,10 +13,14 @@ import qualified AlgebraicPrelude                   as AP
 import           Control.Lens
 import           Data.Bits
 import           Data.Coerce
+import           Data.Foldable                      (fold)
 import           Data.List
 import qualified Data.Map                           as M
 import           Data.Maybe
+import           Data.Monoid                        (Sum (..))
 import           Data.Proxy
+import           Data.Set                           (Set)
+import qualified Data.Set                           as Set
 import           Data.Singletons.Prelude            (type (<), Sing, sing,
                                                      withSingI)
 import           Data.Singletons.TypeLits
@@ -163,15 +167,59 @@ multDiff = withPows $ const $
   SV.map
     ( V.last . SV.unsized . runDuals )
 
--- | @'multDiffUpTo' ds f u@ retruns all partial differential
---   coefficients by \(\alpha \leq w\).
+{- | @'multDiffUpTo' ds f u@ retruns all partial differential
+coefficients by \(\alpha \leq w\).
+
+With Kock-Lawvere axiom of SIA, we have the following identity:
+
+  \[
+    f(x + d_1 + \dots + d_k) = \sum_{0 \leq i \leq k} f^{(i)}(x) \sigma^i_n(d_1, \dots, d_k),
+  \]
+
+where, \(d_i \in D\) and \(\sigma^k_n\) stands for the \(n\)-variate
+elementary symmetric expression of degree \(k\).
+This formula can be regarded as an infinitesimal version of Taylor expansion, because we have \(\sigma^k_n(d_1, \dots, d_n) = \frac{(d_1 + \dots + d_n)^k}{k!} \) for any \(d_i \in D\).
+
+This extends to the multivariate case as well:
+
+  \[
+    \begin{aligned}
+    &f(x_1 + d_{1,1} + \dots + d_{1,k_1}, \dots, x_m + d_{m,1} + \dots + d_{m,k_m})
+    \\
+    = &
+      \sum_{
+        \substack{\alpha = (\alpha_1, \dots, \alpha_m) \in \mathbb{N}^m\\
+        0 \leq \alpha_i \leq k_i
+        }}
+        \mathop{D^{\alpha}}(f)(x_1, \dots, x_m) \cdot \sigma^{\alpha_1}_{k_1}(d_{1,1}, \dots, d_{1,k_1}) \dots \sigma^{\alpha_m}_{k_m}(d_{m,1}, \dots, d_{m,k_m}).
+    \end{aligned}
+  \]
+
+Utilising these indentities, one can compute all derivatives upto degree \(\alpha\) simultaneously.
+-}
 multDiffUpTo
   :: forall n m a. (KnownNat n, KnownNat m, Eq a, Floating a)
   => Vec n Word
   -> (forall x. Floating x => Vec n x -> Vec m x)
   -> Vec n a -> M.Map (Vec n Word) (Vec m a)
 multDiffUpTo = withPows $ \pows (ds :: Vec m (Duals k a)) ->
-  undefined
+  let vars = traverse (map Set.fromList . inits)
+           $ sliced pows
+           $ enumOrdinal @k sing
+  in M.fromList
+      [ ( SV.map (fromIntegral . Set.size) ps
+        , SV.map ((SV.%!! toMonomialIdx (fold ps)) . runDuals) ds
+        )
+      | ps <- vars
+      ]
+
+toMonomialIdx
+  :: forall n. KnownNat n
+  => Set (Ordinal n)
+  -> Ordinal (2^n)
+toMonomialIdx ods =
+  let n = fromIntegral $ natVal' @n proxy#
+  in toEnum $ alaf Sum foldMap (\i -> 2 ^ (n - fromEnum i - 1)) ods
 
 instance (Floating a, KnownNat n) => SmoothRing (Duals n a) where
   liftSmooth = id
