@@ -403,3 +403,11 @@ instance
         , monomUpperBound = mub
         , table = tab
         }
+
+data Cubic
+instance Reifies Cubic (WeilSettings 3 1) where
+  reflect = const $ fromJust $ do
+    SomeWeil (sett :: WeilSettings n 1) <-
+      isWeil $ toIdeal [var 0 ^ 3 :: Polynomial Rational 1]
+    Refl <- testEquality (sing @3) (sing @n)
+    return sett
