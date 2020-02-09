@@ -11,11 +11,7 @@ jobs:
       run: |
         apt-get update -y -qq && apt-get install -y -qq wget
         wget ftp://jim.mathematik.uni-kl.de/repo/extra/gpg && apt-key add gpg && rm gpg
-        if [ ${GHC} -lt 806 ]; then
-          echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu16 xenial main" >> /etc/apt/sources.list
-        else
-          echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
-        fi
+        echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
     - name: Install Dependent Libraries
       uses: mstksg/get-package@v1
       with:
