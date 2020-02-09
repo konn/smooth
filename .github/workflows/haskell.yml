@@ -7,16 +7,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # - name: Adds singular as dependency
-    #   run: |
-    #     apt-get update -y -qq && apt-get install -y -qq wget
-    #     wget ftp://jim.mathematik.uni-kl.de/repo/extra/gpg && apt-key add gpg && rm gpg
-    #     echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
-    #     apt-get install singular41
-    - name: Install Dependent Libraries
-      run: |
-        sudo apt-get update -y -qq
-        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
 
     - name: Cache ~/.stack
       uses: actions/cache@v1.1.0
@@ -64,6 +54,16 @@ jobs:
       with:
         ghc-version: '8.6.5'
         cabal-version: '3.0'
+    # - name: Adds singular as dependency
+    #   run: |
+    #     apt-get update -y -qq && apt-get install -y -qq wget
+    #     wget ftp://jim.mathematik.uni-kl.de/repo/extra/gpg && apt-key add gpg && rm gpg
+    #     echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
+    #     apt-get install singular41
+    - name: Install Dependent Libraries
+      run: |
+        sudo apt-get update -y -qq
+        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
     - name: Install dependencies
       run: |
         pwd
