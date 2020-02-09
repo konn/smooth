@@ -8,46 +8,47 @@ jobs:
 
     steps:
 
-    # - name: Cache ~/.stack
-    #   uses: actions/cache@v1.1.0
-    #   with:
-    #     # A directory to store and save the cache
-    #     path: ~/.stack
-    #     # An explicit key for restoring and saving the cache
-    #     key: ${{runner.os}}-${{github.ref}}-stack-global
-    #     # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-    #     restore-keys: |
-    #       ${{runner.os}}-master-stack-global
+    - uses: actions/checkout@v2
+    - name: Cache ~/.stack
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.stack
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-stack-global
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-stack-global
 
-    # - name: Cache ~/.cabal
-    #   uses: actions/cache@v1.1.0
-    #   with:
-    #     # A directory to store and save the cache
-    #     path: ~/.cabal
-    #     # An explicit key for restoring and saving the cache
-    #     key: ${{runner.os}}-${{github.ref}}-cabal
-    #     # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-    #     restore-keys: |
-    #       ${{runner.os}}-master-cabal
+    - name: Cache ~/.cabal
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.cabal
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-cabal
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-cabal
 
-    # - name: Cache ~/.ghc
-    #   uses: actions/cache@v1.1.0
-    #   with:
-    #     # A directory to store and save the cache
-    #     path: ~/.ghc
-    #     # An explicit key for restoring and saving the cache
-    #     key: ${{runner.os}}-${{github.ref}}-ghc
-    #     # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-    #     restore-keys: |
-    #       ${{runner.os}}-master-stack-global
+    - name: Cache ~/.ghc
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.ghc
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-ghc
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-stack-global
 
-    # - name: Cache .stack-work
-    #   uses: actions/cache@v1.1.0
-    #   with:
-    #     # A directory to store and save the cache
-    #     path: .stack-work
-    #     # An explicit key for restoring and saving the cache
-    #     key: ${{runner.os}}-${{github.ref}}-stack-work
+    - name: Cache .stack-work
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: .stack-work
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-stack-work
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
@@ -60,10 +61,10 @@ jobs:
     #     wget ftp://jim.mathematik.uni-kl.de/repo/extra/gpg && apt-key add gpg && rm gpg
     #     echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
     #     apt-get install singular41
-    # - name: Install Dependent Libraries
-    #   run: |
-    #     sudo apt-get update -y -qq
-    #     sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
+    - name: Install Dependent Libraries
+      run: |
+        sudo apt-get update -y -qq
+        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
     - name: Install dependencies
       run: |
         pwd
