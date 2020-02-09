@@ -1,5 +1,5 @@
-{-# LANGUAGE DataKinds, ExplicitNamespaces, PatternSynonyms #-}
-{-# LANGUAGE ScopedTypeVariables, TypeApplications          #-}
+{-# LANGUAGE DataKinds, ExplicitNamespaces, PatternSynonyms       #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeOperators #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 module Numeric.Algebra.Smooth.WeilSpec where
 import           Data.Proxy
@@ -50,3 +50,35 @@ prop_WeilD1_coincides_with_Dual_on_complex =
           (SV.map (\(a :< da :< NilR) -> Dual a da) ds)
         weilAns = Dual (l %!! 0) (l %!! 1)
     in dualAns ==~ weilAns
+
+prop_Weil_D1xD1_coincides_with_Duals_2 :: Property
+prop_Weil_D1xD1_coincides_with_Duals_2 =
+  forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
+  forAll (arbitrary @(Expr n)) $ \expr ->
+  forAll (arbitrary @(Vec n (Duals 2 Double))) $ \ds ->
+    let f :: Floating x => Vec n x -> x
+        f = evalExpr expr
+        l = weilToVector $ liftSmooth
+            @(Weil (D1 |*| D1) Double)
+            f
+            (SV.map (Weil . runDuals) ds)
+        dualsAns = liftSmooth @(Duals 2 Double) f
+          ds
+        weilAns = Duals l
+    in dualsAns ==~ weilAns
+
+prop_Weil_D1xD1xD1_coincides_with_Duals_3 :: Property
+prop_Weil_D1xD1xD1_coincides_with_Duals_3 =
+  forAll (resize 3 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
+  forAll (resize 5 $ arbitrary @(Expr n)) $ \expr ->
+  forAll (arbitrary @(Vec n (Duals 3 Double))) $ \ds ->
+    let f :: Floating x => Vec n x -> x
+        f = evalExpr expr
+        l = weilToVector $ liftSmooth
+            @(Weil (D1 |*| D1 |*| D1) Double)
+            f
+            (SV.map (Weil . runDuals) ds)
+        dualsAns = liftSmooth @(Duals 3 Double) f
+          ds
+        weilAns = Duals l
+    in dualsAns ==~ weilAns

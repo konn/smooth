@@ -76,6 +76,7 @@ tests:
     - vector
     - mono-traversable
     - ListLike
+    - ghc-typelits-knownnat
     - singletons
     - quickcheck-instances
     - QuickCheck

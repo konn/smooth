@@ -2,6 +2,7 @@
 {-# LANGUAGE GADTs, MagicHash, ScopedTypeVariables, TypeApplications      #-}
 {-# LANGUAGE TypeOperators, TypeSynonymInstances, UndecidableInstances    #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 module Utils where
 import           Data.ListLike               (ListLike)
 import           Data.MonoTraversable
@@ -142,3 +143,20 @@ instance Arbitrary a => Arbitrary (Dual a) where
 
 isIndefinite :: Double -> Bool
 isIndefinite v = isNaN v || isInfinite v
+
+instance
+  ( MonoTraversable (v a),
+    MonoFoldable (v Bool),
+    Element (v a) ~ a,
+    Element (v Bool) ~ Bool,
+    ListLike (v Bool) Bool,
+    ListLike (v a) a, G.Vector v a, KnownNat n, ApproxEq a
+  ) => ApproxEq (Sized v n a) where
+  approxEqWith err = fmap oand . SV.zipWith (approxEqWith err)
+
+instance (ApproxEq r, KnownNat n) => ApproxEq (Duals n r) where
+  approxEqWith err (Duals ns) (Duals ms) =
+    approxEqWith err ns ms
+
+instance (KnownNat n, Arbitrary r) => Arbitrary (Duals n r) where
+  arbitrary = Duals <$> arbitrary
