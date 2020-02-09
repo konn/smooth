@@ -1,4 +1,5 @@
 # Smooth Infinitesimal Analysis, or Automatic Differentiation with higher infinitesimals
+  ![Haskell CI](https://github.com/konn/smooth/workflows/Haskell%20CI/badge.svg)
 
 ## Background
 A technique of [automatic differentiation][ad wiki] (AD) is in wide use in the realm of scientific computation and machine learning.
