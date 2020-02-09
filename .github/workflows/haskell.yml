@@ -15,7 +15,7 @@ jobs:
         # A directory to store and save the cache
         path: ~/.stack
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-global
+        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-master-stack-global
@@ -26,7 +26,7 @@ jobs:
         # A directory to store and save the cache
         path: ~/.cabal
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-master-cabal
@@ -37,10 +37,10 @@ jobs:
         # A directory to store and save the cache
         path: ~/.ghc
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc
+        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
-          ${{runner.os}}-master-stack-global
+          ${{runner.os}}-master-ghc
 
     - name: Cache .stack-work
       uses: actions/cache@v1.1.0
@@ -48,7 +48,9 @@ jobs:
         # A directory to store and save the cache
         path: .stack-work
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
+        restore:
+          ${{runner.os}}-master-stack-work
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
