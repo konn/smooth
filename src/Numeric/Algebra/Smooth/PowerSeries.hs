@@ -217,22 +217,19 @@ instance (Num a, Eq a) => Num (MTree m n a) where
 diffTree
   :: (KnownNat n, Eq a, Num a)
   => Tree n a -> Tree n a
-diffTree = diffTree' 0
+diffTree = diffMTree 0
 
-diffTree'
+diffMTree
   :: forall m n a. (KnownNat m, KnownNat n, Eq a, Num a)
   => Ordinal m -> MTree m n a -> MTree m n a
-diffTree' o (Mul l r) =
-  diffTree' o l * r + l * diffTree' o r
-diffTree' o (Add l r) = diffTree' o l + diffTree' o r
-diffTree' o (DiffArg k i) = DiffArg (k & ix o +~ 1) i
-diffTree' o K{} = K 0
-diffTree' o (DiffFun pow) =
+diffMTree o (Mul l r) =
+  diffMTree o l * r + l * diffMTree o r
+diffMTree o (Add l r) = diffMTree o l + diffMTree o r
+diffMTree o (DiffArg k i) = DiffArg (k & ix o +~ 1) i
+diffMTree o K{} = K 0
+diffMTree o (DiffFun pow) =
   sum
-    [ DiffFun (pow & ix i +~ 1) *
-        sum [ DiffArg (diag j) i
-            | j <- enumOrdinal @m sing
-            ]
+    [ DiffFun (pow & ix i +~ 1) * DiffArg (diag o) i
     | i <- enumOrdinal @n sing
     ]
 
@@ -357,7 +354,7 @@ instance (KnownNat n, Floating a, Eq a)
   liftSmooth f vs = Powers $ \degs ->
     evalMTree
       (foldr (.) id
-        (fmap diffTree' (ifoldMap (flip $ Seq.replicate . fromIntegral) degs))
+        (fmap diffMTree (ifoldMap (flip $ Seq.replicate . fromIntegral) degs))
         (DiffFun (SV.replicate' 0)))
       f vs
     / fromIntegral (alaf Product foldMap factorial degs)
