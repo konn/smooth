@@ -1,14 +1,16 @@
 {-# LANGUAGE AllowAmbiguousTypes, BangPatterns, ConstraintKinds, DataKinds #-}
-{-# LANGUAGE DeriveFoldable, DeriveFunctor, DeriveTraversable, DerivingVia #-}
-{-# LANGUAGE FlexibleContexts, FlexibleInstances, GADTs, MagicHash         #-}
-{-# LANGUAGE MultiParamTypeClasses, NoStarIsType, ParallelListComp         #-}
-{-# LANGUAGE PolyKinds, QuantifiedConstraints, RankNTypes                  #-}
-{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeFamilies           #-}
-{-# LANGUAGE TypeOperators, UndecidableInstances                           #-}
+{-# LANGUAGE DeriveFoldable, DeriveFunctor, DeriveGeneric                  #-}
+{-# LANGUAGE DeriveTraversable, DerivingVia, FlexibleContexts              #-}
+{-# LANGUAGE FlexibleInstances, GADTs, MagicHash, MultiParamTypeClasses    #-}
+{-# LANGUAGE NoStarIsType, ParallelListComp, PolyKinds                     #-}
+{-# LANGUAGE QuantifiedConstraints, RankNTypes, ScopedTypeVariables        #-}
+{-# LANGUAGE TypeApplications, TypeFamilies, TypeOperators                 #-}
+{-# LANGUAGE UndecidableInstances                                          #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 module Numeric.Algebra.Smooth.Dual where
+import           Algebra.Normed
 import qualified AlgebraicPrelude                   as AP
 import           Control.Lens
 import           Data.Bits
@@ -37,6 +39,7 @@ import qualified Data.Vector                        as V
 import qualified Data.Vector.Unboxed                as U
 import           Data.Void
 import           GHC.Exts
+import           GHC.Generics
 import           GHC.TypeNats
 import           Numeric.Algebra                    (Additive, Algebra, (.*))
 import qualified Numeric.Algebra                    as NA
@@ -49,7 +52,7 @@ import           Unsafe.Coerce
 -- | A ring \(\mathbb{R}[\epsilon] = \mathbb{R}[X]/X^2\) of dual numbers.
 -- Corresponding to the usual forward-mode automatic differentiation.
 data Dual a = Dual { value :: !a, epsilon :: a }
-  deriving (Functor, Foldable, Traversable, Eq)
+  deriving (Functor, Foldable, Traversable, Eq, Generic)
   deriving
     ( Additive, NA.Monoidal, NA.Group,
       NA.Abelian, NA.Rig, NA.Commutative,
@@ -246,6 +249,7 @@ instance (KnownNat n, Fractional a)
 --   which does not have mutual relation between
 --   each distinct infinitesimals.
 newtype Duals n a = Duals { runDuals :: Vec (2 ^ n) a }
+  deriving (Foldable, Functor)
   deriving
     ( Additive, NA.Monoidal, NA.Group,
       NA.Abelian, NA.Rig, NA.Commutative,
@@ -377,3 +381,13 @@ halveDs
   :: KnownNat n => Duals (n + 1) a -> Dual (Duals n a)
 halveDs =
   uncurry Dual . (both %~ Duals) . halve . runDuals
+
+instance (Normed a, Floating a) => Normed (Dual a) where
+  type Norm (Dual a) = Norm a
+  norm (Dual a da) = norm $ sqrt $ a^2 + da^2
+  liftNorm n = Dual (liftNorm n) 0
+
+instance (Normed a, Floating a, KnownNat n) => Normed (Duals n a) where
+  type Norm (Duals n a) = Norm a
+  norm (Duals ds) = norm $ sqrt $ sum $ SV.map (^ 2) ds
+  liftNorm = fromCoeff . liftNorm

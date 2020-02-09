@@ -7,6 +7,7 @@
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Numeric.Algebra.Smooth.Weil
   ( Weil(Weil), weilToVector
+  , D1
   , toWeil, isWeil
   , weilToPoly, polyToWeil
   ) where
@@ -170,8 +171,7 @@ instance
   ( KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)
   ) => SmoothRing (Weil s r) where
     liftSmooth f (vs :: KnownNat k => Vec k (Weil s r)) =
-      let vs' :: Vec k (PowerSeries m r)
-          vs' = SV.map
+      let vs' = SV.map
             ( coerce @_ @(PowerSeries _ r)
             . injPoly
             . weilToPoly
@@ -334,8 +334,10 @@ instance PrettyCoeff Double where
 --   Just \(\mathbb{R}[X]/X^2\).
 data D1
 
-weilToVector :: Weil s r -> Vector r
-weilToVector = runWeil_
+weilToVector
+  :: (KnownNat n, KnownNat m, Reifies s (WeilSettings n m))
+  => Weil s r -> Vec n r
+weilToVector (Weil v) = v
 
 instance Reifies D1 (WeilSettings 2 1) where
   reflect = const $

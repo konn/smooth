@@ -66,5 +66,20 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
+    - -Wall
     dependencies:
     - smooth
+    - tasty
+    - type-natural
+    - sized
+    - generic-random
+    - vector
+    - mono-traversable
+    - ListLike
+    - singletons
+    - quickcheck-instances
+    - QuickCheck
+    - tasty-discover
+    - tasty-quickcheck
+    - vector
+    - halg-core
