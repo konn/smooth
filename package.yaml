@@ -71,7 +71,7 @@ tests:
     - smooth
     - tasty
     - type-natural
-    - sized
+    - sized >= 0.4.0.0
     - generic-random
     - vector
     - mono-traversable

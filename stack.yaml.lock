@@ -129,12 +129,12 @@ packages:
   original:
     hackage: algebra-4.3.1@rev:2
 - completed:
-    hackage: sized-0.3.0.0@sha256:d723d3a44a0d3db7185e33d3513cf8c97625c557fcaf2241abfd8e2dbc7aa62a,1797
+    hackage: sized-0.4.0.0@sha256:b83ddf55ea1588795a623963328f08d228c2b2506653362dfe8df90abec7a504,1839
     pantry-tree:
       size: 452
-      sha256: ed6e4cdd1a423a1b87ffcf3fa6ff0e7b0f35dcea8ff5b345897ee828487b1e32
+      sha256: 7c60fabeae7f97eb4c7f7f7856cc45fcfe9b323c3d9adbf7b8e4ea9193862f32
   original:
-    hackage: sized-0.3.0.0
+    hackage: sized-0.4.0.0
 - completed:
     hackage: control-monad-loop-0.1@sha256:2b8d9fbc6e53f2c8f679188952b90f2c69507d1c1efd8867beb64591a22b341c,1106
     pantry-tree:
