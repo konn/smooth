@@ -66,6 +66,8 @@ jobs:
         cabal-version: '3.0'
     - name: Install dependencies
       run: |
+        pwd
+        ls
         stack --no-terminal build --test --no-run-tests --only-dependencies .
     - name: Build
       run: |
