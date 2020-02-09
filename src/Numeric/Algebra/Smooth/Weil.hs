@@ -1,9 +1,11 @@
 {-# LANGUAGE AllowAmbiguousTypes, DataKinds, DerivingVia, FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances, GADTs, GeneralizedNewtypeDeriving          #-}
-{-# LANGUAGE LambdaCase, MultiParamTypeClasses, NoImplicitPrelude          #-}
-{-# LANGUAGE PatternSynonyms, RankNTypes, RecordWildCards                  #-}
-{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving, TypeApplications     #-}
-{-# LANGUAGE TypeFamilies, UndecidableInstances, ViewPatterns              #-}
+{-# LANGUAGE LambdaCase, MagicHash, MultiParamTypeClasses                  #-}
+{-# LANGUAGE NoImplicitPrelude, NoStarIsType, PatternSynonyms, RankNTypes  #-}
+{-# LANGUAGE RecordWildCards, ScopedTypeVariables, StandaloneDeriving      #-}
+{-# LANGUAGE TypeApplications, TypeFamilies, TypeOperators                 #-}
+{-# LANGUAGE UndecidableInstances, ViewPatterns                            #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Numeric.Algebra.Smooth.Weil
   ( Weil(Weil), weilToVector
@@ -36,7 +38,8 @@ import           Data.Sized                                  (pattern (:<),
 import qualified Data.Sized.Builtin                          as SV
 import           Data.Type.Equality
 import qualified Data.Vector.Unboxed                         as U
-import           GHC.TypeNats
+import           GHC.Exts
+import           GHC.TypeNats                                as TN
 import           Numeric.Algebra.Smooth.Classes
 import           Numeric.Algebra.Smooth.PowerSeries
 import           Numeric.Algebra.Smooth.Types
@@ -358,3 +361,43 @@ instance Reifies D2 (WeilSettings 3 2) where
       isWeil $ toIdeal [var 0 ^ 2, var 1^2, var 0 * var 1 :: Polynomial Rational 2]
     Refl <- testEquality (sing @3) (sing @n)
     return sett
+
+-- | Tensor Product.
+data d |*| d'
+
+instance
+  ( Reifies d  (WeilSettings n m),
+    Reifies d' (WeilSettings n' m'),
+    KnownNat n, KnownNat n', KnownNat n'',
+    KnownNat m, KnownNat m', KnownNat m'',
+    (n'' :: Nat) ~ (n * n'),
+    (m'' :: Nat) ~ (m + m')
+  ) => Reifies (d |*| d') (WeilSettings n'' m'') where
+  reflect = const $
+    let weil  = reflect @d Proxy :: WeilSettings n m
+        weil' = reflect @d' Proxy :: WeilSettings n' m'
+        wbs = SV.concat
+          $ SV.map
+            (\w -> SV.map (w SV.++) $ weilBasis weil')
+          $ weilBasis weil
+        n, n' :: Int
+        n  = fromIntegral $ natVal' @n proxy#
+        n' = fromIntegral $ natVal' @n' proxy#
+        mub =
+          monomUpperBound weil SV.++ monomUpperBound weil'
+        tab =
+          HM.fromList
+            [ ((i,j), pl * pr)
+            | j <- [0.. n * n']
+            , i <- [0.. j-1]
+            , let (ir, il) = i `P.divMod` n'
+                  (jr, jl) = i `P.divMod` n'
+                  pl = castPolynomial $ table weil HM.! (min il jl, max il jl)
+                  pr = shiftR (sing @m) $
+                       table weil' HM.! (min ir jr, max ir jr)
+            ]
+    in WeilSettings
+        { weilBasis = wbs
+        , monomUpperBound = mub
+        , table = tab
+        }
