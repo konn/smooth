@@ -24,6 +24,7 @@ import qualified Data.Foldable                               as F
 import qualified Data.HashMap.Strict                         as HM
 import qualified Data.HashSet                                as HS
 import qualified Data.Map.Strict                             as Map
+import           Data.Maybe
 import           Data.MonoTraversable
 import           Data.Proxy
 import qualified Data.Ratio                                  as R
@@ -33,6 +34,7 @@ import           Data.Singletons.TypeLits                    (withKnownNat)
 import           Data.Sized                                  (pattern (:<),
                                                               pattern NilR)
 import qualified Data.Sized.Builtin                          as SV
+import           Data.Type.Equality
 import qualified Data.Vector.Unboxed                         as U
 import           GHC.TypeNats
 import           Numeric.Algebra.Smooth.Classes
@@ -346,3 +348,13 @@ instance Reifies D1 (WeilSettings 2 1) where
     , monomUpperBound = SV.singleton 1
     , table = HM.fromList [((0,0), one), ((0, 1), var 0), ((1,1), zero)]
     }
+
+-- | \(D(2) = k[x,y]/(x^2,y^2,xy) \)
+data D2
+
+instance Reifies D2 (WeilSettings 3 2) where
+  reflect = const $ fromJust $ do
+    SomeWeil (sett :: WeilSettings n 2) <-
+      isWeil $ toIdeal [var 0 ^ 2, var 1^2, var 0 * var 1 :: Polynomial Rational 2]
+    Refl <- testEquality (sing @3) (sing @n)
+    return sett
