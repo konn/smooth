@@ -14,9 +14,9 @@ jobs:
     #     echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
     #     apt-get install singular41
     - name: Install Dependent Libraries
-      uses: mstksg/get-package@v1
-      with:
-        apt-get: 'libgmp3-dev libgsl0-dev liblapack-dev'
+      run: |
+        apt-get update -y -qq && apt-get install -y -qq wget
+        apt-get install -y -qq libgmp3-dev libgsl0-dev liblapack-dev
 
     - name: Cache ~/.stack
       uses: actions/cache@v1.1.0
