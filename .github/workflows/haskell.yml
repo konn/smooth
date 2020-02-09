@@ -1,0 +1,68 @@
+name: Haskell CI
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: Cache ~/.stack
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.stack
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-stack-global
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-stack-global
+
+    - name: Cache ~/.cabal
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.cabal
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-cabal
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-cabal
+
+    - name: Cache ~/.ghc
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.ghc
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-ghc
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-stack-global
+
+    - name: Cache .stack-work
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: .stack-work
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-stack-work
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-master-stack-work
+    - name: Setup Stack
+      uses: mstksg/setup-stack@v1
+    - uses: actions/setup-haskell@v1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '3.0'
+    - name: Install dependencies
+      run: |
+        stack --no-terminal build --only-dependencies
+    - name: Build
+      run: |
+        stack build
+    - name: Run tests
+      run: stack --no-terminal test
