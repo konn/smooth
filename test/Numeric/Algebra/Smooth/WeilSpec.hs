@@ -1,13 +1,17 @@
-{-# LANGUAGE DataKinds, ExplicitNamespaces, GADTs, PatternSynonyms #-}
-{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeOperators  #-}
+{-# LANGUAGE DataKinds, ExplicitNamespaces, GADTs, LambdaCase, MagicHash #-}
+{-# LANGUAGE PatternSynonyms, RankNTypes, ScopedTypeVariables            #-}
+{-# LANGUAGE TypeApplications, TypeOperators                             #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 module Numeric.Algebra.Smooth.WeilSpec where
 import           Data.Foldable                  as F
 import           Data.Proxy
+import           Data.Singletons.Prelude        (sing)
 import           Data.Sized.Builtin             (pattern (:<), pattern NilR,
                                                  (%!!))
 import qualified Data.Sized.Builtin             as SV
 import qualified Data.Vector                    as V
+import           GHC.Exts                       (proxy#)
 import           GHC.TypeNats
 import           Numeric.Algebra.Smooth
 import           Numeric.Algebra.Smooth.Classes
@@ -116,3 +120,35 @@ prop_Weil_Cubic_computes_upto_2nd_derivative =
          f'a ==~ diff1 (evalExpr expr . SV.singleton @V.Vector) a
             .&&.
          f''adiv2 ==~ diff1 (diff1 (evalExpr expr . SV.singleton @V.Vector)) a / 2
+
+data SmoothFunc where
+  SmoothFunc :: (forall x. Floating x => x -> x) -> SmoothFunc
+
+diff1' :: SmoothFunc -> SmoothFunc
+diff1' (SmoothFunc f) = SmoothFunc (diff1 f)
+
+prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative :: Property
+prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative =
+  forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
+  forAll (arbitrary @(Expr 1)) $ \expr ->
+  forAll (arbitrary @Double) $ \a ->
+    let f :: Floating x => x -> x
+        f = evalExpr expr . SV.singleton @V.Vector
+        ds = V.imap
+            (\i (SmoothFunc g) -> g a / fromIntegral (product [1..i]))
+           $ V.iterateN
+                (fromIntegral $ natVal' @n proxy# + 1)
+                diff1' (SmoothFunc f)
+        ans = V.fromList $ F.toList $ weilToVector
+           $ liftUnary @(Weil (DOrder (n + 1)) Double) f
+              (Weil $ SV.generate sing
+              $ \i ->
+                  if i == 0 then a
+                  else if i == 1
+                  then 1 else 0)
+    in counterexample
+          "non-zero result count mismatch"
+          (V.length ds === V.length ans)
+      .&&. conjoin
+            (zipWith (==~) (F.toList ds) (F.toList ans))
+

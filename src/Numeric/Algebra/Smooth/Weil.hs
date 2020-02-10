@@ -11,7 +11,7 @@
 module Numeric.Algebra.Smooth.Weil
   ( Weil(Weil), weilToVector
   , type (|*|)
-  , D1, Cubic
+  , D1, Cubic, DOrder
   , toWeil, isWeil
   , weilToPoly, polyToWeil
   ) where
@@ -411,3 +411,20 @@ instance Reifies Cubic (WeilSettings 3 1) where
       isWeil $ toIdeal [var 0 ^ 3 :: Polynomial Rational 1]
     Refl <- testEquality (sing @3) (sing @n)
     return sett
+
+-- | @'DOrder' n@ corresponds to \(\mathbb{R}[X]/X^n\).
+data DOrder (n :: Nat)
+
+instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
+  reflect = const $
+    let n = fromIntegral (natVal' @n proxy#)
+    in WeilSettings
+    { weilBasis = SV.generate (sing @n) (SV.singleton . toEnum . fromEnum)
+    , monomUpperBound = SV.singleton $ n - 1
+    , table = HM.fromList
+        [ ((i, j), c)
+        | j <- [0..fromIntegral n - 1]
+        , i <- [0..j]
+        , let c = if i + j >= fromIntegral n then 0 else var 0 ^ (fromIntegral $ i + j)
+        ]
+    }
