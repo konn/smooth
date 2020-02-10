@@ -51,15 +51,7 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore:
           ${{runner.os}}-master-stack-work
-    - name: Cache /usr/local
-      uses: actions/cache@v1.1.0
-      with:
-        # A directory to store and save the cache
-        path: /usr/local
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-usr-local-${{ hashFiles('stack.yaml.lock') }}
-        restore:
-          ${{runner.os}}-master-usr-local
+
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
@@ -132,21 +124,16 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore:
           ${{runner.os}}-master-stack-work
-    - name: Cache /usr/local
-      uses: actions/cache@v1.1.0
-      with:
-        # A directory to store and save the cache
-        path: /usr/local
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-usr-local-${{ hashFiles('stack.yaml.lock') }}
-        restore:
-          ${{runner.os}}-master-usr-local
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
         cabal-version: '3.0'
+    - name: Install Dependent Libraries
+      run: |
+        sudo apt-get update -y -qq
+        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
     - name: Build
       run: |
         stack --no-terminal build --test --no-run-tests
@@ -202,20 +189,15 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore:
           ${{runner.os}}-master-stack-work
-    - name: Cache /usr/local
-      uses: actions/cache@v1.1.0
-      with:
-        # A directory to store and save the cache
-        path: /usr/local
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-usr-local-${{ hashFiles('stack.yaml.lock') }}
-        restore:
-          ${{runner.os}}-master-usr-local
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
       with:
         ghc-version: '8.6.5'
         cabal-version: '3.0'
+    - name: Install Dependent Libraries
+      run: |
+        sudo apt-get update -y -qq
+        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
     - name: Run tests
       run: stack --no-terminal build --test
