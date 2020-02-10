@@ -124,7 +124,7 @@ jobs:
         # A directory to store and save the cache
         path: .stack-work
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
         restore:
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
@@ -169,7 +169,7 @@ jobs:
         # A directory to store and save the cache
         path: ~/.cabal
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
