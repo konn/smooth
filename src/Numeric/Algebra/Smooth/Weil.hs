@@ -58,6 +58,11 @@ There are some good characterisation of Weil algebra; the following are equivale
   1. \(W\) is a Weil algebra,
   2. \(W\) is isomorphic to a quotient \(\mathbb{R}[X_1, \dots, X_n]/I\) of polynomial ring, and there exists \(k\) such that \(X_1^{k_1} \dots X_n^{k_n} \in I\) for all \(k_1 + \dots + k_n = k\),
   3. \(W\) is isomoprhic to a quotient \(\mathbb{R}[\![X_1, \dots, X_n]\!]/I\) of a ring of formal power series, such that \(I \supseteq (X_1, \dots, X_n)^k\) for some \(k\).
+
+Since \(\mathbb{R}[\![\mathbf{X}]\!]\) has a \(C^\infty\)-ring structure (via Taylor expansion at zero), and any ring-theoretic ideal \(I\) on \(\mathbb{R}[\![\mathbf{X}]\!]\) induces a congruence of \(C^\infty\)-ring, it followes that any Weil algebra has \(C^\infty\)-structure; i.e. is an instances of @'SmoothRing'@.
+
+In particular, each equivalence class \(d_i = X_i + I\) of variables can be regarded as generalised nilpotent infinitesimals.
+In this sense, the notion of Weil algebra can be thought as a formalisation of "real line with infinitesimals".
 -}
 newtype Weil s r = Weil_ { runWeil_ :: Vector r }
 
@@ -365,6 +370,8 @@ instance Reifies D2 (WeilSettings 3 2) where
     return sett
 
 -- | Tensor Product.
+--
+--   For example, we have @'Weil' ('D1' '|*|' 'D1') 'Double'@ \(\cong\) @'Duals' 2 'Double'@
 data d |*| d'
 
 instance
