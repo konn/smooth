@@ -51,6 +51,15 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore:
           ${{runner.os}}-master-stack-work
+    - name: Cache /usr/local
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: /usr/local
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-usr-local-${{ hashFiles('stack.yaml.lock') }}
+        restore:
+          ${{runner.os}}-master-usr-local
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
@@ -123,6 +132,15 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore:
           ${{runner.os}}-master-stack-work
+    - name: Cache /usr/local
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: /usr/local
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-usr-local-${{ hashFiles('stack.yaml.lock') }}
+        restore:
+          ${{runner.os}}-master-usr-local
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
@@ -132,8 +150,6 @@ jobs:
     - name: Build
       run: |
         stack --no-terminal build --test --no-run-tests
-    - name: Run tests
-      run: stack --no-terminal build --test
 
   test:
     needs:
@@ -186,6 +202,15 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore:
           ${{runner.os}}-master-stack-work
+    - name: Cache /usr/local
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: /usr/local
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-usr-local-${{ hashFiles('stack.yaml.lock') }}
+        restore:
+          ${{runner.os}}-master-usr-local
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1
