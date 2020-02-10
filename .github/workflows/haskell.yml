@@ -49,7 +49,7 @@ jobs:
         path: .stack-work
         # An explicit key for restoring and saving the cache
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
-        restore:
+        restore: |
           ${{runner.os}}-master-stack-work
 
     - name: Setup Stack
@@ -125,7 +125,7 @@ jobs:
         path: .stack-work
         # An explicit key for restoring and saving the cache
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
-        restore:
+        restore: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
     - name: Setup Stack
@@ -194,7 +194,7 @@ jobs:
         path: .stack-work
         # An explicit key for restoring and saving the cache
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
-        restore:
+        restore: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
     - name: Setup Stack
