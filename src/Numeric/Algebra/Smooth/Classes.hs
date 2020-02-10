@@ -26,7 +26,7 @@ import           Numeric.Natural
 
 {- | \(C^\infty\)-ring, or <https://ncatlab.org/nlab/show/smooth+algebra smooth algebra>.
 
-An \(\mathbb{R}\)-algebra, o \(W\) is called /\(C^\infty\)-ring/,
+An \(\mathbb{R}\)-algebra \(W\) is called a /\(C^\infty\)-ring/,
 or /smooth algebra/,
 if for any smooth function \(f: \mathbb{R}^n \to \mathbb{R}\),
 there is a lifted function \(W(f): W^n \to W\) which is compatible
