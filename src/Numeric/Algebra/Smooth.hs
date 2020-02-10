@@ -21,6 +21,7 @@ import           Numeric.Algebra.Smooth.Types
 import           Numeric.Natural
 
 diff1
-  :: (forall a. Floating a => a -> a)
-  -> Double -> Double
+  :: Floating b
+  => (forall a. Floating a => a -> a)
+  -> b -> b
 diff1 f = epsilon . liftUnary f . (`Dual` 1)

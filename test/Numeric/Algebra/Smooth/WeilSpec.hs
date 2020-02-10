@@ -1,12 +1,15 @@
-{-# LANGUAGE DataKinds, ExplicitNamespaces, PatternSynonyms       #-}
-{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeOperators #-}
+{-# LANGUAGE DataKinds, ExplicitNamespaces, GADTs, PatternSynonyms #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeOperators  #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 module Numeric.Algebra.Smooth.WeilSpec where
+import           Data.Foldable                  as F
 import           Data.Proxy
 import           Data.Sized.Builtin             (pattern (:<), pattern NilR,
                                                  (%!!))
 import qualified Data.Sized.Builtin             as SV
+import qualified Data.Vector                    as V
 import           GHC.TypeNats
+import           Numeric.Algebra.Smooth
 import           Numeric.Algebra.Smooth.Classes
 import           Numeric.Algebra.Smooth.Dual
 import           Numeric.Algebra.Smooth.Types
@@ -82,3 +85,34 @@ prop_Weil_D1xD1xD1_coincides_with_Duals_3 =
           ds
         weilAns = Duals l
     in dualsAns ==~ weilAns
+
+prop_Weil_Cubic_computes_upto_2nd_derivative_for_sin :: Property
+prop_Weil_Cubic_computes_upto_2nd_derivative_for_sin =
+  forAll (arbitrary @Double) $ \a ->
+      let [fa, f'a, f''adiv2] =
+            F.toList $ weilToVector $
+            liftUnary @(Weil Cubic Double)
+            sin
+            (Weil $ a :< 1 :< 0 :< NilR)
+      in fa ==~ sin a
+            .&&.
+         f'a ==~ cos a
+            .&&.
+         f''adiv2 ==~ -0.5 * sin a
+
+prop_Weil_Cubic_computes_upto_2nd_derivative :: Property
+prop_Weil_Cubic_computes_upto_2nd_derivative =
+  forAll (arbitrary @(Expr 1)) $ \expr ->
+    forAll (arbitrary @Double) $ \a ->
+      let [fa, f'a, f''adiv2] =
+            F.toList $ weilToVector $
+            liftSmooth @(Weil Cubic Double)
+            (evalExpr expr)
+            (SV.singleton $ Weil $ a :< 1 :< 0 :< NilR
+              :: Vec 1 (Weil Cubic Double)
+            )
+      in fa ==~ evalExpr expr (SV.singleton a :: Vec 1 Double)
+            .&&.
+         f'a ==~ diff1 (evalExpr expr . SV.singleton @V.Vector) a
+            .&&.
+         f''adiv2 ==~ diff1 (diff1 (evalExpr expr . SV.singleton @V.Vector)) a / 2

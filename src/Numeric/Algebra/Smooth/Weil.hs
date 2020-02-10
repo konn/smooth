@@ -11,7 +11,7 @@
 module Numeric.Algebra.Smooth.Weil
   ( Weil(Weil), weilToVector
   , type (|*|)
-  , D1
+  , D1, Cubic
   , toWeil, isWeil
   , weilToPoly, polyToWeil
   ) where
