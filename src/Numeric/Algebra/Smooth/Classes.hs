@@ -51,7 +51,7 @@ class
    => SmoothRing w where
   liftSmooth
     :: KnownNat n
-    => (forall a. Floating a => Vec n a -> a)
+    => (forall a. (Floating a) => Vec n a -> a)
     -> Vec n w -> w
 
 liftUnary

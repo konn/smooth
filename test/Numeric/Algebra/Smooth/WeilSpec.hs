@@ -45,7 +45,7 @@ prop_WeilD1_coincides_with_Dual_on_complexBin =
 prop_WeilD1_coincides_with_Dual_on_complex :: Property
 prop_WeilD1_coincides_with_Dual_on_complex =
   forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-  forAll (arbitrary @(Expr n)) $ \expr ->
+  forAll (arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
   forAll (arbitrary @(Vec n (Vec 2 Double))) $ \ds ->
     let f :: Floating x => Vec n x -> x
         f = evalExpr expr
@@ -61,7 +61,7 @@ prop_WeilD1_coincides_with_Dual_on_complex =
 prop_Weil_D1xD1_coincides_with_Duals_2 :: Property
 prop_Weil_D1xD1_coincides_with_Duals_2 =
   forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-  forAll (arbitrary @(Expr n)) $ \expr ->
+  forAll (arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
   forAll (arbitrary @(Vec n (Duals 2 Double))) $ \ds ->
     let f :: Floating x => Vec n x -> x
         f = evalExpr expr
@@ -77,7 +77,7 @@ prop_Weil_D1xD1_coincides_with_Duals_2 =
 prop_Weil_D1xD1xD1_coincides_with_Duals_3 :: Property
 prop_Weil_D1xD1xD1_coincides_with_Duals_3 =
   forAll (resize 3 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-  forAll (resize 5 $ arbitrary @(Expr n)) $ \expr ->
+  forAll (resize 5 $ arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
   forAll (arbitrary @(Vec n (Duals 3 Double))) $ \ds ->
     let f :: Floating x => Vec n x -> x
         f = evalExpr expr
@@ -106,7 +106,7 @@ prop_Weil_Cubic_computes_upto_2nd_derivative_for_sin =
 
 prop_Weil_Cubic_computes_upto_2nd_derivative :: Property
 prop_Weil_Cubic_computes_upto_2nd_derivative =
-  forAll (arbitrary @(Expr 1)) $ \expr ->
+  forAll (arbitrary @(TotalExpr 1)) $ \(TotalExpr expr) ->
     forAll (arbitrary @Double) $ \a ->
       let [fa, f'a, f''adiv2] =
             F.toList $ weilToVector $
@@ -130,7 +130,7 @@ diff1' (SmoothFunc f) = SmoothFunc (diff1 f)
 prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative :: Property
 prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative =
   forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-  forAll (arbitrary @(Expr 1)) $ \expr ->
+  forAll (arbitrary @(TotalExpr 1)) $ \(TotalExpr expr) ->
   forAll (arbitrary @Double) $ \a ->
     let f :: Floating x => x -> x
         f = evalExpr expr . SV.singleton @V.Vector

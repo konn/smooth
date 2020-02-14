@@ -69,6 +69,7 @@ tests:
     - -Wall
     dependencies:
     - smooth
+    - ad
     - tasty
     - type-natural
     - sized >= 0.4.0.0

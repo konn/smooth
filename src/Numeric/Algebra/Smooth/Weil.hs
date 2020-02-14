@@ -359,7 +359,7 @@ instance Reifies D1 (WeilSettings 2 1) where
     , table = HM.fromList [((0,0), one), ((0, 1), var 0), ((1,1), zero)]
     }
 
--- | \(D(2) = k[x,y]/(x^2,y^2,xy) \)
+-- | \(\mathbb{R} \oplus D(2) = k[x,y]/(x^2,y^2,xy) \)
 data D2
 
 instance Reifies D2 (WeilSettings 3 2) where

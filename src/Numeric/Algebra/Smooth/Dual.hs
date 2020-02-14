@@ -1,11 +1,11 @@
 {-# LANGUAGE AllowAmbiguousTypes, BangPatterns, ConstraintKinds, DataKinds #-}
 {-# LANGUAGE DeriveFoldable, DeriveFunctor, DeriveGeneric                  #-}
 {-# LANGUAGE DeriveTraversable, DerivingVia, FlexibleContexts              #-}
-{-# LANGUAGE FlexibleInstances, GADTs, MagicHash, MultiParamTypeClasses    #-}
-{-# LANGUAGE NoStarIsType, ParallelListComp, PolyKinds                     #-}
-{-# LANGUAGE QuantifiedConstraints, RankNTypes, ScopedTypeVariables        #-}
-{-# LANGUAGE TypeApplications, TypeFamilies, TypeOperators                 #-}
-{-# LANGUAGE UndecidableInstances                                          #-}
+{-# LANGUAGE FlexibleInstances, GADTs, LambdaCase, MagicHash               #-}
+{-# LANGUAGE MultiParamTypeClasses, NoStarIsType, ParallelListComp         #-}
+{-# LANGUAGE PolyKinds, QuantifiedConstraints, RankNTypes, RecordWildCards #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeFamilies           #-}
+{-# LANGUAGE TypeOperators, UndecidableInstances                           #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
@@ -49,9 +49,15 @@ import           Numeric.Natural
 import           Proof.Propositional
 import           Unsafe.Coerce
 
+
+epsilon :: Num a => Dual a -> a
+epsilon = \case
+  Konst{} -> 0
+  Dual{..} -> _epsilon
 -- | A ring \(\mathbb{R}[\epsilon] = \mathbb{R}[X]/X^2\) of dual numbers.
 -- Corresponding to the usual forward-mode automatic differentiation.
-data Dual a = Dual { value :: !a, epsilon :: a }
+data Dual a = Dual { value :: !a, _epsilon :: a }
+            | Konst { value :: !a }
   deriving (Functor, Foldable, Traversable, Eq, Generic)
   deriving
     ( Additive, NA.Monoidal, NA.Group,
@@ -69,6 +75,7 @@ instance Fractional a => NA.LeftModule (AP.WrapFractional Double) (Dual a) where
   AP.WrapFractional x .* Dual a da = Dual (realToFrac x * a) (realToFrac x * da)
 
 instance (Show a, Num a, Eq a) => Show (Dual a) where
+  showsPrec d (Konst n)  = showsPrec d n
   showsPrec d (Dual a 0) = showsPrec d a
   showsPrec d (Dual 0 e) = showParen (d > 10) $
     showsPrec 11 e . showString " ε"
@@ -110,35 +117,57 @@ instance Algebra (AP.WrapFractional Double) DualsumBasis where
     f' D = fd
 
 instance Num a => Num (Dual a) where
-  fromInteger n = Dual (fromInteger n) 0
+  fromInteger = Konst . fromInteger
+  Konst a   + b = b { value = a + value b}
+  a + Konst b   = a { value = value a + b}
   Dual a da + Dual b db = Dual (a + b) (da + db)
+  Konst a   - Konst b   = Konst (a - b)
+  Konst a   - Dual b db = Dual (a - b) (- db)
+  Dual a da - Konst b   = Dual (a - b) da
   Dual a da - Dual b db = Dual (a - b) (da - db)
+  negate (Konst a)   = Konst $ negate a
   negate (Dual a da) = Dual (negate a) (negate da)
+  Konst a * Konst b = Konst (a * b)
+  Konst a * Dual b db = Dual (a * b) (a * db)
+  Dual a da * Konst b = Dual (a * b) (da * b)
   Dual a da * Dual b db = Dual (a * b) (a * db + da * b)
+  abs (Konst a)   = Konst (abs a)
   abs (Dual a da) = Dual (abs a) (signum a)
+  signum (Konst a)   = Konst $ signum a
   signum (Dual a da) = Dual (signum a) 0
 
 instance Fractional a => Fractional (Dual a) where
-  fromRational = (`Dual` 0) . fromRational
+  fromRational = Konst . fromRational
+  Konst x / Konst y = Konst (x / y)
+  Konst x / Dual y dy = Dual (x / y) (- x * dy / (y * y))
+  Dual x dx / Konst y = Dual (x / y) (dx / y)
   Dual x dx / Dual y dy = Dual (x / y) (dx / y - x * dy / (y * y))
-  recip (Dual x dx) = Dual (recip x) (- dx / (x * x))
+  recip = unDual recip (\x -> - recip (x * x))
 
-instance Floating a => Floating (Dual a) where
+unDual :: (Num a) => (a -> a) -> (a -> a) -> Dual a -> Dual a
+{-# INLINE unDual #-}
+unDual f df = \case
+  Dual a da ->
+    Dual (f a) (da * df a)
+  Konst a -> Konst (f a)
+
+
+instance (Floating a) => Floating (Dual a) where
   pi = Dual pi 0
-  exp (Dual a da) = Dual (exp a) (da * exp a)
-  sin (Dual a da) = Dual (sin a) (da * cos a)
-  cos (Dual a da) = Dual (cos a) (-da * sin a)
-  tan (Dual a da) = Dual (tan a) (da / cos a ^^ 2)
-  log (Dual a da) = Dual (log a) (da / a)
-  asin (Dual a da) = Dual (asin a) (da / sqrt (1 - a ^^ 2))
-  acos (Dual a da) = Dual (acos a) (da / (- sqrt (1 - a ^^ 2)))
-  atan (Dual a da) = Dual (atan a) (da / (a^2 + 1))
-  sinh (Dual a da) = Dual (sinh a) (da * cosh a)
-  cosh (Dual a da) = Dual (cosh a) (da * sinh a)
-  tanh (Dual a da) = Dual (tanh a) (da / cosh a ^^ 2)
-  asinh (Dual a da) = Dual (asinh a) (da / sqrt (1 + a ^^ 2))
-  acosh (Dual a da) = Dual (acosh a) (da / sqrt (a ^^ 2 - 1))
-  atanh (Dual a da) = Dual (atanh a) (da / (1 - a ^^ 2))
+  exp = unDual exp exp
+  sin = unDual sin cos
+  cos = unDual cos (negate . sin)
+  tan = unDual tan (recip . cos . (^^ 2))
+  log = unDual log recip
+  asin = unDual asin (\a -> recip $ sqrt $ (1 -) $ (^^2) a)
+  acos = unDual acos (\a -> 1 / (- sqrt (1 - a ^^ 2)))
+  atan = unDual atan (\a -> 1 / (a^2 + 1))
+  sinh = unDual sinh cosh
+  cosh = unDual cosh sinh
+  tanh = unDual tanh (\a -> 1 / cosh a ^^ 2)
+  asinh = unDual asinh (\a -> recip $ sqrt (1 + a ^^ 2))
+  acosh = unDual acosh (\a -> recip $ sqrt (a ^^ 2 - 1))
+  atanh = unDual atanh (\a -> recip $ (1 - a ^^ 2))
 
 monomIndices :: KnownNat n => Vec n Bool -> V.Vector Int
 monomIndices =

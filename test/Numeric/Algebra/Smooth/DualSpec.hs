@@ -6,6 +6,7 @@ import           Data.Proxy
 import           Data.Sized.Builtin             (pattern (:<), pattern NilR)
 import qualified Data.Sized.Builtin             as SV
 import           GHC.TypeNats
+import qualified Numeric.AD                     as AD
 import           Numeric.Algebra.Smooth.Classes
 import           Numeric.Algebra.Smooth.Dual
 import           Numeric.Algebra.Smooth.Types
@@ -31,7 +32,7 @@ prop_liftSmotoh_coincides_with_liftDual_on_complexBin =
 prop_liftSmooth_coincides_with_liftDual_on_complex :: Property
 prop_liftSmooth_coincides_with_liftDual_on_complex =
   forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-  forAll (arbitrary @(Expr n)) $ \expr ->
+  forAll (arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
   forAll (arbitrary @(Vec n (Dual Double))) $ \ds ->
     let f :: Floating x => Vec n x -> x
         f = evalExpr expr
@@ -39,3 +40,18 @@ prop_liftSmooth_coincides_with_liftDual_on_complex =
         smoothAns = liftDual f ds
     in dualAns ==~ smoothAns
 
+prop_Dual_behaves_similarly_to_Forward_in_ad_package :: Property
+prop_Dual_behaves_similarly_to_Forward_in_ad_package =
+  forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
+  forAll (arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
+  forAll (arbitrary @(Vec n (Dual Double))) $ \ds ->
+    let f :: Floating x => Vec n x -> x
+        f = evalExpr expr
+        dualAns = liftSmooth @(Dual Double) f $ deKonst <$> ds
+        smoothAns =
+          uncurry Dual $ AD.du' f (dualToTup <$> ds)
+    in dualAns ==~ smoothAns
+
+deKonst :: Num a => Dual a -> Dual a
+deKonst (Konst a) = Dual a 0
+deKonst d         = d

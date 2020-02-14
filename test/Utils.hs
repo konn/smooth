@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds, DeriveAnyClass, DeriveGeneric, DerivingStrategies #-}
-{-# LANGUAGE GADTs, MagicHash, ScopedTypeVariables, TypeApplications      #-}
-{-# LANGUAGE TypeOperators, TypeSynonymInstances, UndecidableInstances    #-}
+{-# LANGUAGE GADTs, GeneralizedNewtypeDeriving, MagicHash, PolyKinds      #-}
+{-# LANGUAGE ScopedTypeVariables, TypeApplications, TypeOperators         #-}
+{-# LANGUAGE TypeSynonymInstances, UndecidableInstances                   #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 module Utils where
@@ -12,6 +13,7 @@ import qualified Data.Sized.Builtin          as SV
 import           Data.Type.Ordinal.Builtin
 import qualified Data.Vector.Generic         as G
 import           Generic.Random              hiding ((:+))
+import qualified Generic.Random              as GR
 import           GHC.Exts
 import           GHC.Generics
 import           GHC.TypeNats
@@ -30,8 +32,8 @@ data Expr n
   | Sinh (Expr n)
   | Cosh (Expr n)
   | Tanh (Expr n)
-  -- | Asinh (Expr n)
-  -- | Acosh (Expr n)
+  | Asinh (Expr n)
+  | Acosh (Expr n)
   | Atanh (Expr n)
   | Exp (Expr n)
   -- | Log (Expr n)
@@ -75,6 +77,33 @@ instance (KnownNat n) => Arbitrary (Expr n) where
     (Arg <$> arbitrary)
   shrink = genericShrink
 
+newtype TotalExpr n = TotalExpr { runTotalExpr :: Expr n }
+  deriving newtype (Eq, Show)
+
+instance KnownNat n => Arbitrary (TotalExpr n) where
+  arbitrary =
+      TotalExpr <$>
+    genericArbitraryRecG
+        ((runTotalExpr @n <$> arbitrary) GR.:+ (arbitrary @Double) GR.:+ (arbitrary @(Ordinal n)) GR.:+ ())
+        ((1 :: W "Sin") % (1 :: W "Cos") % (0 :: W "Tan")
+        % (1 :: W "Atan")
+        % (0 :: W "Sinh") % (0 :: W "Cosh") % (0 :: W "Tanh")
+          -- Actually, sinh is total. but it grows so fast to reach infinity
+        % (1 :: W "Asinh")
+        % (0 :: W "Acosh") % (0 :: W "Atanh")
+        % (0 :: W "Exp") -- Yes, exponential is total, but it is easy to explode...
+        % (1 :: W ":+")
+        % (1 :: W ":-")
+        % (1 :: W ":*")
+        % (0 :: W ":^")
+        % (1 :: W "Negate")
+        % (1 :: W "K")
+        % (1 :: W "Arg")
+        % ()
+        )
+        `withBaseCase`
+    (Arg <$> arbitrary)
+
 evalExpr
   :: forall n a f.
       (KnownNat n, Floating a, ListLike (f a) a)
@@ -92,8 +121,8 @@ evalExpr (Atan e)      v = atan $ evalExpr e v
 evalExpr (Sinh e)      v = sinh $ evalExpr e v
 evalExpr (Cosh e)      v = cosh $ evalExpr e v
 evalExpr (Tanh e)      v = tanh $ evalExpr e v
--- evalExpr (Asinh e)     v = asinh $ evalExpr e v
--- evalExpr (Acosh e)     v = acosh $ evalExpr e v
+evalExpr (Asinh e)     v = asinh $ evalExpr e v
+evalExpr (Acosh e)     v = acosh $ evalExpr e v
 evalExpr (Atanh e)     v = atanh $ evalExpr e v
 evalExpr (l :+ r)      v = evalExpr l v + evalExpr r v
 evalExpr (l :- r)      v = evalExpr l v - evalExpr r v
@@ -119,8 +148,15 @@ instance ApproxEq Double where
     | otherwise =
         abs (l - r) / max (abs l) (abs r) < fromRational err
 
-instance (ApproxEq a, ApproxEq a)
+instance (ApproxEq a, RealFloat a)
       => ApproxEq (Dual a) where
+  approxEqWith err (Konst a) (Dual b db) =
+    approxEqWith err a b &&
+      (approxEqWith err db 0 || isIndefinite a && isIndefinite b)
+  approxEqWith err (Dual a da) (Konst b) =
+    approxEqWith err a b
+    && (approxEqWith err da 0 || isIndefinite a && isIndefinite b)
+  approxEqWith err (Konst a) (Konst b) = approxEqWith err a b
   approxEqWith err (Dual l dl) (Dual r dr) =
     approxEqWith err l r && approxEqWith err dl dr
 
@@ -141,7 +177,7 @@ instance Arbitrary a => Arbitrary (Dual a) where
   arbitrary = genericArbitrary uniform
   shrink = genericShrink
 
-isIndefinite :: Double -> Bool
+isIndefinite :: RealFloat a => a -> Bool
 isIndefinite v = isNaN v || isInfinite v
 
 instance
@@ -160,3 +196,8 @@ instance (ApproxEq r, KnownNat n) => ApproxEq (Duals n r) where
 
 instance (KnownNat n, Arbitrary r) => Arbitrary (Duals n r) where
   arbitrary = Duals <$> arbitrary
+
+dualToTup
+  :: Num a => Dual a -> (a,a)
+dualToTup (Dual a da) = (a, da)
+dualToTup (Konst a)   = (a, 0)
