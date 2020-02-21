@@ -26,8 +26,8 @@ data Expr n
   = Sin (Expr n)
   | Cos (Expr n)
   | Tan (Expr n)
-  -- | Asin (Expr n)
-  -- | Acos (Expr n)
+  | Asin (Expr n)
+  | Acos (Expr n)
   | Atan (Expr n)
   | Sinh (Expr n)
   | Cosh (Expr n)
@@ -36,8 +36,8 @@ data Expr n
   | Acosh (Expr n)
   | Atanh (Expr n)
   | Exp (Expr n)
-  -- | Log (Expr n)
-  -- | LogBase (Expr n) (Expr n)
+  | Log (Expr n)
+  | LogBase (Expr n) (Expr n)
   | Expr n :+ Expr n
   | Expr n :- Expr n
   | Expr n :* Expr n
@@ -86,12 +86,14 @@ instance KnownNat n => Arbitrary (TotalExpr n) where
     genericArbitraryRecG
         ((runTotalExpr @n <$> arbitrary) GR.:+ (arbitrary @Double) GR.:+ (arbitrary @(Ordinal n)) GR.:+ ())
         ((1 :: W "Sin") % (1 :: W "Cos") % (0 :: W "Tan")
+        % (0 :: W "Asin") % (0 :: W "Acos")
         % (1 :: W "Atan")
         % (0 :: W "Sinh") % (0 :: W "Cosh") % (0 :: W "Tanh")
           -- Actually, sinh is total. but it grows so fast to reach infinity
         % (1 :: W "Asinh")
         % (0 :: W "Acosh") % (0 :: W "Atanh")
         % (0 :: W "Exp") -- Yes, exponential is total, but it is easy to explode...
+        % (0 :: W "Log") % (0 :: W "LogBase")
         % (1 :: W ":+")
         % (1 :: W ":-")
         % (1 :: W ":*")
@@ -110,13 +112,13 @@ evalExpr
   => Expr n -> Sized f n a -> a
 evalExpr (Arg o)       v = v SV.%!! o
 evalExpr (Exp e)       v = exp $ evalExpr e v
--- evalExpr (Log e)       v = log $ evalExpr e v
--- evalExpr (LogBase b e) v = logBase (evalExpr b v) $ evalExpr e v
+evalExpr (Log e)       v = log $ evalExpr e v
+evalExpr (LogBase b e) v = logBase (evalExpr b v) $ evalExpr e v
 evalExpr (Sin e)       v = sin $ evalExpr e v
 evalExpr (Cos e)       v = cos $ evalExpr e v
 evalExpr (Tan e)       v = tan $ evalExpr e v
--- evalExpr (Asin e)      v = asin $ evalExpr e v
--- evalExpr (Acos e)      v = acos $ evalExpr e v
+evalExpr (Asin e)      v = asin $ evalExpr e v
+evalExpr (Acos e)      v = acos $ evalExpr e v
 evalExpr (Atan e)      v = atan $ evalExpr e v
 evalExpr (Sinh e)      v = sinh $ evalExpr e v
 evalExpr (Cosh e)      v = cosh $ evalExpr e v

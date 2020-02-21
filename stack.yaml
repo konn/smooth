@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-14.21
+resolver: lts-15.0
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -37,7 +37,7 @@ packages:
 extra-deps:
 - equational-reasoning-0.6.0.1
 - github: konn/computational-algebra
-  commit: e417a650a567e4847ead4edff83904bf6c0a9626
+  commit: 7c2ac459fc63783b0f822489729a3326cb9ac8d7
   subdirs:
   - algebraic-prelude
   - halg-core
@@ -45,10 +45,7 @@ extra-deps:
   - halg-heaps
   - halg-matrices
   - halg-algorithms
-- ghc-typelits-presburger-0.3.0.0
-- type-natural-0.8.3.1
 - algebra-4.3.1@rev:2
-- sized-0.4.0.0
 - control-monad-loop-0.1
 - unamb-0.2.7
-- singletons-presburger-0.3.0.0
+- repa-3.4.1.4

@@ -33,6 +33,7 @@ import           Data.MonoTraversable
 import           Data.Proxy
 import qualified Data.Ratio                                  as R
 import           Data.Reflection
+import           Data.Singletons.Decide
 import           Data.Singletons.Prelude                     (sing)
 import           Data.Singletons.TypeLits                    (withKnownNat)
 import           Data.Sized                                  (pattern (:<),
@@ -366,7 +367,7 @@ instance Reifies D2 (WeilSettings 3 2) where
   reflect = const $ fromJust $ do
     SomeWeil (sett :: WeilSettings n 2) <-
       isWeil $ toIdeal [var 0 ^ 2, var 1^2, var 0 * var 1 :: Polynomial Rational 2]
-    Refl <- testEquality (sing @3) (sing @n)
+    Refl <- decideEquality (sing @3) (sing @n)
     return sett
 
 -- | Tensor Product.
@@ -416,7 +417,7 @@ instance Reifies Cubic (WeilSettings 3 1) where
   reflect = const $ fromJust $ do
     SomeWeil (sett :: WeilSettings n 1) <-
       isWeil $ toIdeal [var 0 ^ 3 :: Polynomial Rational 1]
-    Refl <- testEquality (sing @3) (sing @n)
+    Refl <- decideEquality (sing @3) (sing @n)
     return sett
 
 -- | @'DOrder' n@ corresponds to \(\mathbb{R}[X]/X^n\).
