@@ -137,7 +137,7 @@ jobs:
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
-        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
+        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev llvm-7-dev
     - name: Build
       run: |
         stack --no-terminal build --test --no-run-tests
@@ -206,6 +206,6 @@ jobs:
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
-        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev
+        sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev llvm-7-dev
     - name: Run tests
       run: stack --no-terminal build --test
