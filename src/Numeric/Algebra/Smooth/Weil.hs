@@ -1,17 +1,17 @@
-{-# LANGUAGE AllowAmbiguousTypes, DataKinds, DerivingVia               #-}
-{-# LANGUAGE ExplicitNamespaces, FlexibleContexts, FlexibleInstances   #-}
-{-# LANGUAGE GADTs, GeneralizedNewtypeDeriving, LambdaCase, MagicHash  #-}
-{-# LANGUAGE MultiParamTypeClasses, NoImplicitPrelude, NoStarIsType    #-}
-{-# LANGUAGE PatternSynonyms, RankNTypes, RecordWildCards              #-}
-{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving, TypeApplications #-}
-{-# LANGUAGE TypeFamilies, TypeOperators, UndecidableInstances         #-}
-{-# LANGUAGE ViewPatterns                                              #-}
+{-# LANGUAGE AllowAmbiguousTypes, DataKinds, DerivingVia, FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances, GADTs, GeneralizedNewtypeDeriving          #-}
+{-# LANGUAGE MagicHash, MultiParamTypeClasses, NoImplicitPrelude           #-}
+{-# LANGUAGE NoStarIsType, PatternSynonyms, RankNTypes, RecordWildCards    #-}
+{-# LANGUAGE ScopedTypeVariables, StandaloneDeriving, TypeApplications     #-}
+{-# LANGUAGE TypeFamilies, TypeOperators, UndecidableInstances             #-}
+{-# LANGUAGE ViewPatterns                                                  #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 module Numeric.Algebra.Smooth.Weil
   ( Weil(Weil), weilToVector
+  , WeilSettings
   , type (|*|)
-  , D1, Cubic, DOrder
+  , D1, D2, Cubic, DOrder
   , toWeil, isWeil
   , weilToPoly, polyToWeil
   ) where
