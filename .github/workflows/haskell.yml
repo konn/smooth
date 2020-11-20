@@ -49,7 +49,7 @@ jobs:
         path: .stack-work
         # An explicit key for restoring and saving the cache
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
-        restore: |
+        restore-keys: |
           ${{runner.os}}-master-stack-work
 
     - uses: actions/setup-haskell@v1.1
@@ -57,6 +57,7 @@ jobs:
         ghc-version: '8.6.5'
         cabal-version: '3.0'
         enable-stack: true
+        stack-version: '2.5.1'
     # - name: Adds singular as dependency
     #   run: |
     #     apt-get update -y -qq && apt-get install -y -qq wget
@@ -124,15 +125,15 @@ jobs:
         path: .stack-work
         # An explicit key for restoring and saving the cache
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
-        restore: |
+        restore-keys: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
-    - name: Setup Stack
-      uses: mstksg/setup-stack@v1
-    - uses: actions/setup-haskell@v1
+    - uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '3.0'
+        enable-stack: true
+        stack-version: '2.5.1'
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
@@ -193,15 +194,17 @@ jobs:
         path: .stack-work
         # An explicit key for restoring and saving the cache
         key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
-        restore: |
+        restore-keys: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
     - name: Setup Stack
       uses: mstksg/setup-stack@v1
-    - uses: actions/setup-haskell@v1
+    - uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
         cabal-version: '3.0'
+        enable-stack: true
+        stack-version: '2.5.1'
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
