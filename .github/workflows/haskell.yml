@@ -197,8 +197,6 @@ jobs:
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
-    - name: Setup Stack
-      uses: mstksg/setup-stack@v1
     - uses: actions/setup-haskell@v1.1
       with:
         ghc-version: '8.6.5'
