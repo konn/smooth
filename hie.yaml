@@ -1,0 +1,12 @@
+cradle:
+  stack:
+    - path: "src"
+      component: "smooth:lib"
+    - path: "app/Main.hs"
+      component: "smooth:exe:smooth-exe"
+    - path: "app/Symbolic.hs"
+      component: "smooth:exe:smooth-exe"
+    - path: "test"
+      component: "smooth:test:smooth-test"
+    - path: "app/SmallAD.hs"
+      component:  "app/SmallAD.hs"
