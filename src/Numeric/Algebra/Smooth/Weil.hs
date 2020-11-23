@@ -12,43 +12,109 @@ module Numeric.Algebra.Smooth.Weil
   , WeilSettings
   , type (|*|)
   , D1, D2, Cubic, DOrder
-  , toWeil, isWeil
+  , di, ei, basisWeil
+  , toWeil, isWeil, injCoeWeil
+  , reifyWeil, withWeil
   , weilToPoly, polyToWeil
   ) where
-import           Algebra.Algorithms.Groebner
+import           Algebra.Algorithms.Groebner                 (isIdealMember)
 import           Algebra.Algorithms.Groebner.Signature.Rules ()
-import           Algebra.Algorithms.ZeroDim
-import           Algebra.Ring.Ideal
-import           Algebra.Ring.Polynomial
-import           Algebra.Ring.Polynomial.Quotient
-import           AlgebraicPrelude
-import           Control.Lens                                hiding ((:<))
-import           Data.Coerce
+import           Algebra.Algorithms.ZeroDim                  (radical)
+import           Algebra.Ring.Ideal                          (Ideal, mapIdeal,
+                                                              toIdeal)
+import           Algebra.Ring.Polynomial                     (IsPolynomial (coeff', fromMonomial, injectCoeff, monomials, polynomial', var),
+                                                              Polynomial,
+                                                              PrettyCoeff (..),
+                                                              ShowSCoeff (Negative, OneCoeff, Positive, Vanished),
+                                                              castPolynomial,
+                                                              convertPolynomial,
+                                                              mapCoeff, shiftR,
+                                                              showsPolynomialWith',
+                                                              vars)
+import           Algebra.Ring.Polynomial.Quotient            (modIdeal',
+                                                              quotRepr,
+                                                              reifyQuotient,
+                                                              standardMonomials')
+import           AlgebraicPrelude                            (Abelian,
+                                                              Additive ((+)),
+                                                              Applicative (pure),
+                                                              Bool (False),
+                                                              Commutative,
+                                                              Double,
+                                                              Enum (fromEnum, toEnum),
+                                                              Eq ((==)),
+                                                              Floating (acos, acosh, asin, asinh, atan, atanh, cos, cosh, exp, log, logBase, pi, sin, sinh, tan, tanh, (**)),
+                                                              Foldable (maximum),
+                                                              Fractional,
+                                                              Group ((-)), Int,
+                                                              Integer,
+                                                              LeftModule (..),
+                                                              Maybe (Just),
+                                                              Monad (return),
+                                                              Monoidal (zero),
+                                                              Multiplicative ((*)),
+                                                              Natural, Num (..),
+                                                              Ord (max, min, (<), (<=), (>=)),
+                                                              Rational, Rig,
+                                                              RightModule (..),
+                                                              Ring, Semiring,
+                                                              Show (show, showsPrec),
+                                                              Traversable (traverse),
+                                                              Unital (one),
+                                                              Vector, Word,
+                                                              WrapFractional (..),
+                                                              WrapNum (WrapNum),
+                                                              all, const,
+                                                              denominator, flip,
+                                                              fromInteger,
+                                                              fromIntegral,
+                                                              fromRational,
+                                                              guard, head,
+                                                              numerator,
+                                                              otherwise,
+                                                              realToFrac, sum,
+                                                              ($), (++), (.),
+                                                              (<$>), (^))
+import           Control.Lens                                (itoList,
+                                                              (:~:) (..))
+import           Data.Coerce                                 (coerce)
 import qualified Data.Foldable                               as F
 import qualified Data.HashMap.Strict                         as HM
 import qualified Data.HashSet                                as HS
 import qualified Data.Map.Strict                             as Map
-import           Data.Maybe
-import           Data.MonoTraversable
-import           Data.Proxy
+import           Data.Maybe                                  (fromJust)
+import           Data.MonoTraversable                        (osum)
+import           Data.Proxy                                  (Proxy (..))
 import qualified Data.Ratio                                  as R
-import           Data.Reflection
-import           Data.Singletons.Decide
+import           Data.Reflection                             (Reifies (..),
+                                                              reify)
+import           Data.Singletons.Decide                      (decideEquality)
 import           Data.Singletons.Prelude                     (sing)
 import           Data.Singletons.TypeLits                    (withKnownNat)
 import           Data.Sized                                  (pattern (:<),
                                                               pattern NilR)
 import qualified Data.Sized.Builtin                          as SV
-import           Data.Type.Equality
+import           Data.Type.Equality                          ()
 import qualified Data.Vector.Unboxed                         as U
-import           GHC.Exts
-import           GHC.TypeNats                                as TN
-import           Numeric.Algebra.Smooth.Classes
-import           Numeric.Algebra.Smooth.PowerSeries
-import           Numeric.Algebra.Smooth.Types
+import           GHC.Exts                                    (proxy#)
+import           GHC.TypeNats                                as TN (KnownNat,
+                                                                    Nat,
+                                                                    natVal',
+                                                                    type (*),
+                                                                    type (+))
+import           Numeric.Algebra.Smooth.Classes              (SmoothRing (..),
+                                                              liftBinary,
+                                                              liftUnary)
+import           Numeric.Algebra.Smooth.PowerSeries          (PowerSeries (Powers),
+                                                              cutoff, diag,
+                                                              injPoly)
+import           Numeric.Algebra.Smooth.Types                (UVec, Vec,
+                                                              convVec)
 import qualified Prelude                                     as P
 
-import qualified Data.Vector as V
+import           Data.Type.Ordinal.Builtin (enumOrdinal)
+import qualified Data.Vector               as V
+import qualified Numeric.Algebra           as NA
 
 {- | Weil algebra.
 
@@ -66,6 +132,7 @@ In particular, each equivalence class \(d_i = X_i + I\) of variables can be rega
 In this sense, the notion of Weil algebra can be thought as a formalisation of "real line with infinitesimals".
 -}
 newtype Weil s r = Weil_ { runWeil_ :: Vector r }
+  deriving newtype (P.Functor)
 
 pattern Weil
   :: forall s n m r.
@@ -108,6 +175,19 @@ deriving via WrapNum (Weil s r)
 deriving via WrapNum (Weil s r)
   instance (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m))
         => LeftModule Natural (Weil s r)
+
+instance
+  ( Semiring r,
+    KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)
+  ) => LeftModule r (Weil s r) where
+  (.*) = coerce $ V.map @r . (NA.*)
+
+instance
+  ( Semiring r,
+    KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)
+  ) => RightModule r (Weil s r) where
+  (*.) = flip $ coerce $ V.map @r . flip (NA.*)
+
 deriving via WrapNum (Weil s r)
   instance (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m))
         => RightModule Natural (Weil s r)
@@ -231,6 +311,14 @@ ei :: (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
    => SV.Ordinal m -> Weil s r
 ei ord = Weil $ diag ord
 
+-- | The list of the basis of Weil algebra.
+basisWeil
+  :: forall s m n r.
+      (Reifies s (WeilSettings m n), KnownNat n, KnownNat m, Num r)
+  => [Weil s r]
+basisWeil =
+  [ Weil $ diag i | i <- enumOrdinal $ sing @m]
+
 -- | @i@ th infinitesimal of Weil algebra.
 di :: (Eq r, Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
    => SV.Ordinal n -> Weil s r
@@ -293,13 +381,24 @@ instance
 reifyWeil
   :: KnownNat n
   => Ideal (Polynomial Rational n)
-  -> (forall m s. Reifies s (WeilSettings m n) =>
+  -> (forall m s. (Reifies s (WeilSettings m n), KnownNat m) =>
         Proxy s -> r
      )
   -> Maybe r
 reifyWeil i f = do
   SomeWeil (ws :: WeilSettings m n) <- isWeil i
   pure $ reify ws f
+
+withWeil
+  :: (KnownNat n, Eq a, Fractional a)
+  => Ideal (Polynomial Rational n)
+  -> (forall s m. (KnownNat m, Reifies s (WeilSettings m n)) =>
+        Weil s a
+     )
+  -> Maybe (Polynomial a n)
+withWeil i f = reifyWeil i $ \(s :: Proxy s) ->
+  case reflect s of
+    WeilSettings _ _ _ -> coerce $ weilToPoly $ f @s
 
 isWeil
   :: KnownNat n
