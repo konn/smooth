@@ -23,7 +23,7 @@ import           Data.Monoid                        (Sum (..))
 import           Data.Proxy
 import           Data.Set                           (Set)
 import qualified Data.Set                           as Set
-import           Data.Singletons.Prelude            (type (<), Sing, sing,
+import           Data.Singletons.Prelude            (Sing, sing, type (<),
                                                      withSingI)
 import           Data.Singletons.TypeLits
 import           Data.Sized.Builtin                 (Sized)
@@ -49,11 +49,11 @@ import           Numeric.Natural
 import           Proof.Propositional
 import           Unsafe.Coerce
 
-
 epsilon :: Num a => Dual a -> a
 epsilon = \case
-  Konst{} -> 0
+  Konst{}  -> 0
   Dual{..} -> _epsilon
+
 -- | A ring \(\mathbb{R}[\epsilon] = \mathbb{R}[X]/X^2\) of dual numbers.
 -- Corresponding to the usual forward-mode automatic differentiation.
 data Dual a = Dual { value :: !a, _epsilon :: a }
@@ -118,8 +118,8 @@ instance Algebra (AP.WrapFractional Double) DualsumBasis where
 
 instance Num a => Num (Dual a) where
   fromInteger = Konst . fromInteger
-  Konst a   + b = b { value = a + value b}
-  a + Konst b   = a { value = value a + b}
+  Konst a   + b         = b { value = a + value b}
+  a + Konst b           = a { value = value a + b}
   Dual a da + Dual b db = Dual (a + b) (da + db)
   Konst a   - Konst b   = Konst (a - b)
   Konst a   - Dual b db = Dual (a - b) (- db)
@@ -127,9 +127,9 @@ instance Num a => Num (Dual a) where
   Dual a da - Dual b db = Dual (a - b) (da - db)
   negate (Konst a)   = Konst $ negate a
   negate (Dual a da) = Dual (negate a) (negate da)
-  Konst a * Konst b = Konst (a * b)
-  Konst a * Dual b db = Dual (a * b) (a * db)
-  Dual a da * Konst b = Dual (a * b) (da * b)
+  Konst a * Konst b     = Konst (a * b)
+  Konst a * Dual b db   = Dual (a * b) (a * db)
+  Dual a da * Konst b   = Dual (a * b) (da * b)
   Dual a da * Dual b db = Dual (a * b) (a * db + da * b)
   abs (Konst a)   = Konst (abs a)
   abs (Dual a da) = Dual (abs a) (signum a)
@@ -138,9 +138,9 @@ instance Num a => Num (Dual a) where
 
 instance Fractional a => Fractional (Dual a) where
   fromRational = Konst . fromRational
-  Konst x / Konst y = Konst (x / y)
-  Konst x / Dual y dy = Dual (x / y) (- x * dy / (y * y))
-  Dual x dx / Konst y = Dual (x / y) (dx / y)
+  Konst x / Konst y     = Konst (x / y)
+  Konst x / Dual y dy   = Dual (x / y) (- x * dy / (y * y))
+  Dual x dx / Konst y   = Dual (x / y) (dx / y)
   Dual x dx / Dual y dy = Dual (x / y) (dx / y - x * dy / (y * y))
   recip = unDual recip (\x -> - recip (x * x))
 
@@ -244,6 +244,20 @@ multDiffUpTo = withPows $ \pows (ds :: Vec m (Duals k a)) ->
         )
       | ps <- vars
       ]
+
+-- | Unary variant of 'multDiffUpTo'
+diffUpTo
+  :: forall a. (Eq a, Floating a)
+  => Word
+  -> (forall x. Floating x => x -> x)
+  -> a -> M.Map Word a
+diffUpTo n f x =
+  M.map (SV.head)
+  $ M.mapKeysMonotonic SV.head
+  $ multDiffUpTo @1 @1
+    (SV.singleton n)
+    (\(a SV.:< SV.NilL) -> SV.singleton $ f a)
+    (SV.singleton x)
 
 toMonomialIdx
   :: forall n. KnownNat n
