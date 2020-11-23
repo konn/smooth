@@ -9,26 +9,29 @@ module Numeric.Algebra.Smooth.PowerSeries where
 import           Algebra.Ring.Polynomial            (IsPolynomial)
 import qualified Algebra.Ring.Polynomial            as Pol
 import qualified AlgebraicPrelude                   as AP
-import           Control.Lens
-import           Control.Monad
-import           Data.Coerce
+import           Control.Lens                       (FoldableWithIndex (ifoldMap, ifolded),
+                                                     FunctorWithIndex (imap),
+                                                     Ixed (ix), alaf, withIndex,
+                                                     (&), (+~), (^..))
+import           Control.Monad                      (guard)
+import           Data.Coerce                        (coerce)
 import           Data.Monoid                        (Product (..))
-import           Data.Profunctor
 import qualified Data.Sequence                      as Seq
-import           Data.Singletons.Prelude
+import           Data.Singletons.Prelude            (Sing, SingI (sing))
 import qualified Data.Sized.Builtin                 as SV
 import           Data.Type.Natural.Class.Arithmetic (ZeroOrSucc (..),
                                                      zeroOrSucc)
-import           Data.Type.Ordinal.Builtin
+import           Data.Type.Ordinal.Builtin          (Ordinal, enumOrdinal)
 import qualified Data.Vector                        as V
-import           GHC.Conc
-import           GHC.Generics
-import           GHC.TypeNats
+import           GHC.Conc                           (par)
+import           GHC.Generics                       (Generic)
+import           GHC.TypeNats                       (KnownNat)
 import qualified Numeric.Algebra                    as NA
-import           Numeric.Algebra.Smooth.Classes
-import           Numeric.Algebra.Smooth.Dual
-import           Numeric.Algebra.Smooth.Types
-import           Numeric.Natural
+import           Numeric.Algebra.Smooth.Classes     (SmoothRing (..),
+                                                     liftBinary, liftUnary)
+import           Numeric.Algebra.Smooth.Dual        (multDiff)
+import           Numeric.Algebra.Smooth.Types       (Vec, convVec)
+import           Numeric.Natural                    (Natural)
 
 -- | Unary formal power series, or Tower.
 newtype Series k = Series { runSeries :: [k] }
@@ -209,7 +212,7 @@ instance (Num a, Eq a) => Num (MTree m n a) where
   x * K 1 = x
   K 0 * _ = K 0
   _ * K 0 = K 0
-  x * y = Mul x y
+  x * y   = Mul x y
   negate = Mul $ K ( -1)
   abs = error "No Abs for Tree"
   signum = error "No signum for Tree"
