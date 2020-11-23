@@ -17,7 +17,7 @@
 #
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
-resolver: lts-15.0
+resolver: lts-15.15
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -29,23 +29,23 @@ resolver: lts-15.0
 #   - auto-update
 #   - wai
 packages:
-- .
+  - .
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-- equational-reasoning-0.6.0.1
-- github: konn/computational-algebra
-  commit: 7c2ac459fc63783b0f822489729a3326cb9ac8d7
-  subdirs:
-  - algebraic-prelude
-  - halg-core
-  - halg-polynomials
-  - halg-heaps
-  - halg-matrices
-  - halg-algorithms
-- algebra-4.3.1@rev:2
-- control-monad-loop-0.1
-- unamb-0.2.7
-- repa-3.4.1.4
+  - equational-reasoning-0.6.0.1
+  - github: konn/computational-algebra
+    commit: b28cc49c26657353eb0638649fb9cce65b76f4fc
+    subdirs:
+      - algebraic-prelude
+      - halg-core
+      - halg-polynomials
+      - halg-heaps
+      - halg-matrices
+      - halg-algorithms
+  - algebra-4.3.1@rev:2
+  - control-monad-loop-0.1
+  - unamb-0.2.7
+  - repa-3.4.1.4
