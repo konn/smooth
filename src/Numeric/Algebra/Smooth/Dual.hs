@@ -228,6 +228,8 @@ This extends to the multivariate case as well:
   \]
 
 Utilising these indentities, one can compute all derivatives upto degree \(\alpha\) simultaneously.
+
+cf. 'multDiffUpTo''
 -}
 multDiffUpTo
   :: forall n m a. (KnownNat n, KnownNat m, Eq a, Floating a)
@@ -252,7 +254,7 @@ diffUpTo
   -> (forall x. Floating x => x -> x)
   -> a -> M.Map Word a
 diffUpTo n f x =
-  M.map (SV.head)
+  M.map SV.head
   $ M.mapKeysMonotonic SV.head
   $ multDiffUpTo @1 @1
     (SV.singleton n)

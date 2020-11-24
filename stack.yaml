@@ -49,3 +49,5 @@ extra-deps:
   - control-monad-loop-0.1
   - unamb-0.2.7
   - repa-3.4.1.4
+  - github: konn/factorials
+    commit: f4ae86d3ff241258d08663f77b550c945bb65497

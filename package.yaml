@@ -49,6 +49,8 @@ dependencies:
 
 library:
   source-dirs: src
+  dependencies:
+  - factorials
 
 executables:
   smooth-exe:
@@ -79,6 +81,9 @@ tests:
     - smooth
     - ad
     - tasty
+    - semialign
+    - these
+    - semialign-indexed
     - type-natural
     - sized >= 0.4.0.0
     - generic-random
@@ -93,3 +98,11 @@ tests:
     - tasty-quickcheck
     - vector
     - halg-core
+
+benchmarks:
+  diffupto-bench:
+    main: diffupto-bench.hs
+    source-dirs: bench
+    dependencies:
+    - smooth
+    - gauge

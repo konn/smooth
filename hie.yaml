@@ -10,3 +10,5 @@ cradle:
       component: "smooth:test:smooth-test"
     - path: "app/SmallAD.hs"
       component:  "app/SmallAD.hs"
+    - path: "bench/diffupto-bench.hs"
+      component: "smooth:bench:diffupto-bench"

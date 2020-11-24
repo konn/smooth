@@ -16,6 +16,7 @@ module Numeric.Algebra.Smooth.Weil
   , toWeil, isWeil, injCoeWeil
   , reifyWeil, withWeil
   , weilToPoly, polyToWeil
+  , diffUpTo'
   ) where
 import           Algebra.Algorithms.Groebner                 (isIdealMember)
 import           Algebra.Algorithms.Groebner.Signature.Rules ()
@@ -30,6 +31,8 @@ import           Algebra.Ring.Polynomial                     (IsPolynomial (coef
                                                               convertPolynomial,
                                                               mapCoeff, shiftR,
                                                               showsPolynomialWith',
+                                                              totalDegree,
+                                                              totalDegree',
                                                               vars)
 import           Algebra.Ring.Polynomial.Quotient            (modIdeal',
                                                               quotRepr,
@@ -112,9 +115,14 @@ import           Numeric.Algebra.Smooth.Types                (UVec, Vec,
                                                               convVec)
 import qualified Prelude                                     as P
 
-import           Data.Type.Ordinal.Builtin (enumOrdinal)
-import qualified Data.Vector               as V
-import qualified Numeric.Algebra           as NA
+import           Algebra.Ring.Polynomial                     (IsOrderedPolynomial (terms))
+import qualified Data.Map                                    as M
+import           Data.Type.Ordinal.Builtin                   (enumOrdinal)
+import qualified Data.Vector                                 as V
+import           GHC.TypeLits                                (SomeNat (SomeNat))
+import           GHC.TypeNats                                (someNatVal)
+import           Math.NumberTheory.Factorial.Swing.Recursion (factorial)
+import qualified Numeric.Algebra                             as NA
 
 {- | Weil algebra.
 
@@ -535,3 +543,18 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
         , let c = if i + j >= fromIntegral n then 0 else var 0 ^ (fromIntegral $ i + j)
         ]
     }
+
+
+diffUpTo' :: forall a. (Eq a, Floating a)
+  => Word -> (forall x. Floating x => x -> x)
+  -> a -> M.Map Word a
+diffUpTo' n f x =
+  case someNatVal $ fromIntegral n of
+    SomeNat (_ :: Proxy n) ->
+      let a = f (injCoeWeil x + di 0) :: Weil (DOrder (n + 1)) a
+      in M.mapWithKey
+          (\n x -> fromInteger (factorial $ fromIntegral n) P.* x
+          )
+        $ coerce $ M.mapKeysMonotonic (fromIntegral . totalDegree)
+        $ terms
+        $ weilToPoly a

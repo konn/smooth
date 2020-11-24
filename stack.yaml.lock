@@ -39,6 +39,17 @@ packages:
       sha256: 658dece8ff797a9ff0940ad812b966e0a93c3e4442f73c27b96d615106db7db8
   original:
     hackage: repa-3.4.1.4
+- completed:
+    size: 11649
+    url: https://github.com/konn/factorials/archive/f4ae86d3ff241258d08663f77b550c945bb65497.tar.gz
+    name: factorials
+    version: 0.1.0.0
+    sha256: d2c966a4506ec491a8579ab9c3bddeb6ffb51f75a66a8b5fdd8b6f2a64811389
+    pantry-tree:
+      size: 1439
+      sha256: c0f2ad25ba9d3c51dafd1af183fa2aab26bdc1bd84079b965c524db58a3bc6a8
+  original:
+    url: https://github.com/konn/factorials/archive/f4ae86d3ff241258d08663f77b550c945bb65497.tar.gz
 snapshots:
 - completed:
     size: 496112
