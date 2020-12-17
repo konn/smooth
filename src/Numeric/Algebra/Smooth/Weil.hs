@@ -230,7 +230,7 @@ instance (KnownNat n, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)
               [ injectCoeff (WrapFractional $ c P.* d)
                   *
                 mapCoeff fromRational'
-                  (table HM.! (min i j, max i j))
+                  (HM.lookupDefault 0 (min i j, max i j) table)
               | (fromEnum -> i, c) <- itoList f
               , (fromEnum -> j, d) <- itoList g
               ]
@@ -509,9 +509,10 @@ instance
             , i <- [0.. j-1]
             , let (ir, il) = i `P.divMod` n'
                   (jr, jl) = i `P.divMod` n'
-                  pl = castPolynomial $ table weil HM.! (min il jl, max il jl)
+                  pl = castPolynomial $ 
+                    HM.lookupDefault 0 (min il jl, max il jl) (table weil)
                   pr = shiftR (sing @m) $
-                       table weil' HM.! (min ir jr, max ir jr)
+                       HM.lookupDefault 0 (min ir jr, max ir jr) (table weil')
             ]
     in WeilSettings
         { weilBasis = wbs
