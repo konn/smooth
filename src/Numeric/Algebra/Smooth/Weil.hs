@@ -505,14 +505,14 @@ instance
         tab =
           HM.fromList
             [ ((i,j), pl * pr)
-            | j <- [0.. n * n']
-            , i <- [0.. j-1]
-            , let (ir, il) = i `P.divMod` n'
-                  (jr, jl) = i `P.divMod` n'
+            | j <- [0.. n * n' - 1]
+            , i <- [0.. j]
+            , let (il, ir) = i `P.divMod` n'
+                  (jl, jr) = j `P.divMod` n'
                   pl = castPolynomial $ 
-                    HM.lookupDefault 0 (min il jl, max il jl) (table weil)
+                    table weil HM.! (min il jl, max il jl)
                   pr = shiftR (sing @m) $
-                       HM.lookupDefault 0 (min ir jr, max ir jr) (table weil')
+                    table weil' HM.! (min ir jr, max ir jr)
             ]
     in WeilSettings
         { weilBasis = wbs
