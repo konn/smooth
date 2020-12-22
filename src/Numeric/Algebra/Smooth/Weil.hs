@@ -384,7 +384,7 @@ polyToWeil a =
               $ HM.lookup
                 (SV.map fromIntegral mon)
                 weilMonomDic
-          intUb = SV.map fromIntegral monomUpperBound
+          intUb = SV.map fromIntegral nonZeroVarMaxPowers
           (less, eq, _) =
             Map.splitLookup intUb $
               terms' a
@@ -459,7 +459,7 @@ toWeil ps =
             Map.filter (P./= 0) $
               Map.fromList $
                 map (SV.map fromIntegral *** WrapFractional) $
-                  cutoffMult monomUpperBound ps
+                  cutoffMult nonZeroVarMaxPowers ps
        in polyToWeil $ dic ^. re _Terms'
 
 instance
@@ -483,10 +483,17 @@ deriving instance Show (SomeWeilSettings m)
 data WeilSettings m n where
   WeilSettings ::
     (KnownNat n, KnownNat m) =>
-    { weilBasis :: Vec m (UVec n Word)
-    , monomUpperBound :: UVec n Word
-    , weilMonomDic :: HM.HashMap (UVec n Word) (Vec m Rational)
-    , table :: HM.HashMap (Int, Int) (Polynomial Rational n)
+    { -- | Monomial basis (or, standard monomials) of Weil algebra
+      weilBasis :: Vec m (UVec n Word)
+    , -- | Maximum non-vanishing power of each ariables;
+      -- N.B. Could be distinct with @maximum weilBasis@, because
+      -- there can be a non-zero monomial which are not a standard monomial.
+      nonZeroVarMaxPowers :: UVec n Word
+    , -- | Dictionary for non-vanishing monomials and their representation;
+      --   should be constructed lazily for the sake of efficiency.
+      weilMonomDic :: HM.HashMap (UVec n Word) (Vec m Rational)
+    , -- | Multiplciation table
+      table :: HM.HashMap (Int, Int) (Polynomial Rational n)
     } ->
     WeilSettings m n
 
@@ -561,7 +568,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
           , c /= 0
           ]
       pgens = SV.generate sing $ \i -> univPoly i ps
-      monomUpperBound =
+      nonZeroVarMaxPowers =
         convVec @_ @V.Vector $
           SV.map (fromIntegral . pred . totalDegree') pgens
   guard $ all isMonomial pgens
@@ -571,7 +578,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
         let weilMonomDic =
               LHM.fromList
                 [ (mon, SV.unsafeToSized' @m pol)
-                | mon <- otraverse (enumFromTo 0) monomUpperBound
+                | mon <- otraverse (enumFromTo 0) nonZeroVarMaxPowers
                 , let pol =
                         vectorRep $
                           modIdeal' p $
@@ -614,7 +621,7 @@ instance Reifies D1 (WeilSettings 2 1) where
               [ (SV.singleton 0, 1 :< 0 :< SV.NilR)
               , (SV.singleton 1, 0 :< 1 :< SV.NilR)
               ]
-        , monomUpperBound = SV.singleton 1
+        , nonZeroVarMaxPowers = SV.singleton 1
         , table = HM.fromList [((0, 0), one), ((0, 1), var 0)]
         }
 
@@ -662,7 +669,7 @@ instance
           n = fromIntegral $ natVal' @n proxy#
           n' = fromIntegral $ natVal' @n' proxy#
           mub =
-            monomUpperBound weil SV.++ monomUpperBound weil'
+            nonZeroVarMaxPowers weil SV.++ nonZeroVarMaxPowers weil'
           tab =
             HM.fromList
               [ ((i, j), castPolynomial pl * shiftR (sing @m) pr)
@@ -690,7 +697,7 @@ instance
                            in (lCoes V.! l) * (rCoes V.! r)
                   , oany (/= 0) coes
                   ]
-            , monomUpperBound = mub
+            , nonZeroVarMaxPowers = mub
             , table = tab
             }
 
@@ -720,7 +727,7 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
                     )
                   | i <- enumOrdinal $ sing @n
                   ]
-            , monomUpperBound = SV.singleton $ n - 1
+            , nonZeroVarMaxPowers = SV.singleton $ n - 1
             , table =
                 LHM.fromList
                   [ ((i, j), c)
