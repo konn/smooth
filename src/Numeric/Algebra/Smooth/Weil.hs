@@ -23,22 +23,12 @@ import           Algebra.Algorithms.Groebner.Signature.Rules ()
 import           Algebra.Algorithms.ZeroDim                  (radical)
 import           Algebra.Ring.Ideal                          (Ideal, mapIdeal,
                                                               toIdeal)
-import           Algebra.Ring.Polynomial                     (IsPolynomial (coeff', fromMonomial, injectCoeff, monomials, polynomial', var),
-                                                              Polynomial,
-                                                              PrettyCoeff (..),
-                                                              ShowSCoeff (Negative, OneCoeff, Positive, Vanished),
-                                                              castPolynomial,
-                                                              convertPolynomial,
-                                                              mapCoeff, shiftR,
-                                                              showsPolynomialWith',
-                                                              totalDegree,
-                                                              totalDegree',
-                                                              vars)
-import           Algebra.Ring.Polynomial.Quotient            (modIdeal',
+import           Algebra.Ring.Polynomial
+import           Algebra.Ring.Polynomial.Quotient            (gBasis', modIdeal',
                                                               quotRepr,
                                                               reifyQuotient,
                                                               standardMonomials')
-import           AlgebraicPrelude                            (Abelian,
+import           AlgebraicPrelude                            ((***), (<>), map, Abelian,
                                                               Additive ((+)),
                                                               Applicative (pure),
                                                               Bool (False),
@@ -78,7 +68,7 @@ import           AlgebraicPrelude                            (Abelian,
                                                               realToFrac, sum,
                                                               ($), (++), (.),
                                                               (<$>), (^))
-import           Control.Lens                                (itoList,
+import           Control.Lens                                (re, (^.), (<&>), ifoldMapBy, itoList,
                                                               (:~:) (..))
 import           Data.Coerce                                 (coerce)
 import qualified Data.Foldable                               as F
@@ -108,13 +98,12 @@ import           GHC.TypeNats                                as TN (KnownNat,
 import           Numeric.Algebra.Smooth.Classes              (SmoothRing (..),
                                                               liftBinary,
                                                               liftUnary)
-import           Numeric.Algebra.Smooth.PowerSeries          (PowerSeries (Powers),
+import           Numeric.Algebra.Smooth.PowerSeries          (cutoffMult, PowerSeries (Powers),
                                                               cutoff, diag,
                                                               injPoly)
 import           Numeric.Algebra.Smooth.Types                (UVec, Vec,
                                                               convVec)
 import qualified Prelude                                     as P
-
 import           Algebra.Ring.Polynomial                     (IsOrderedPolynomial (terms))
 import qualified Data.Map                                    as M
 import           Data.Type.Ordinal.Builtin                   (enumOrdinal)
@@ -123,6 +112,10 @@ import           GHC.TypeLits                                (SomeNat (SomeNat))
 import           GHC.TypeNats                                (someNatVal)
 import           Math.NumberTheory.Factorial.Swing.Recursion (factorial)
 import qualified Numeric.Algebra                             as NA
+import AlgebraicPrelude (Add(Add))
+import Data.Monoid (Sum(Sum))
+import Algebra.Ring.Polynomial.Monomial
+import Control.Arrow (Arrow(first))
 
 {- | Weil algebra.
 
@@ -282,16 +275,29 @@ instance
 
 polyToWeil
   :: forall s r n m.
-       (KnownNat m, Eq r, KnownNat n, Reifies s (WeilSettings m n), Num r)
+       (KnownNat m, Eq r, KnownNat n, Reifies s (WeilSettings m n), Num r, Fractional r)
   => Polynomial (WrapFractional r) n -> Weil s r
 polyToWeil a =
   case reflect @s Proxy of
     WeilSettings{..} ->
-      Weil
-      $ SV.map
-          (\m -> unwrapFractional
-               $ coeff' (SV.map fromIntegral m) a)
-          weilBasis
+      let calcProj
+            :: OrderedMonomial Grevlex n 
+            -> WrapFractional r
+            -> Vec m r
+          calcProj mon coe =
+              let cs = fromOrderedMonomial mon `modPolynomial` 
+                        weilGBasis
+              in weilBasis <&> \uv -> unwrapFractional $
+                  fromRational' @r (coeff' (SV.map fromIntegral uv) cs) 
+                  * coe
+          (less, eq) = Map.split (SV.map fromIntegral monomUpperBound)
+            $ terms' a
+          coes = ifoldMapBy 
+            (SV.zipWithSame (P.+)) 
+            (SV.replicate' 0) 
+            calcProj
+            $ terms a
+      in Weil coes
 
 weilToPoly
   :: forall s r n m.
@@ -328,20 +334,20 @@ basisWeil =
   [ Weil $ diag i | i <- enumOrdinal $ sing @m]
 
 -- | @i@ th infinitesimal of Weil algebra.
-di :: (Eq r, Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
+di :: (Eq r, Num r, Reifies s (WeilSettings m n), Fractional r, KnownNat n, KnownNat m)
    => SV.Ordinal n -> Weil s r
 di = polyToWeil . var
 
 toWeil
-  :: forall n r s m. (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m)
+  :: forall n r s m. (Eq r, Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m, Fractional r)
   => PowerSeries n r -> Weil s r
 toWeil ps =
   case reflect @s Proxy of
     WeilSettings{..} ->
-      let dic = HM.fromList $ cutoff (osum monomUpperBound) ps
-      in Weil
-          $ SV.map (\b -> HM.lookupDefault 0 (convVec b) dic)
-            weilBasis
+      let dic = Map.filter (P./= 0) $ Map.fromList
+            $ map (SV.map fromIntegral *** WrapFractional)
+            $ cutoffMult monomUpperBound ps
+      in polyToWeil $ dic ^. re _Terms'
 
 instance (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m))
       => LeftModule (WrapFractional Double) (Weil s r) where
@@ -363,6 +369,7 @@ data WeilSettings m n where
     :: (KnownNat n, KnownNat m) =>
     { weilBasis  :: Vec m (UVec n Word)
     , monomUpperBound :: UVec n Word
+    , weilGBasis :: Ideal (Polynomial Rational n)
     , table :: HM.HashMap (Int, Int) (Polynomial Rational n)
     }
     -> WeilSettings m n
@@ -406,7 +413,7 @@ withWeil
   -> Maybe (Polynomial a n)
 withWeil i f = reifyWeil i $ \(s :: Proxy s) ->
   case reflect s of
-    WeilSettings _ _ _ -> coerce $ weilToPoly $ f @s
+    WeilSettings{} -> coerce $ weilToPoly $ f @s
 
 isWeil
   :: KnownNat n
@@ -417,6 +424,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
      V.fromList
       <$> standardMonomials' p
   let vs = vars
+      weilGBasis = toIdeal $ gBasis' p
       weilBasis0 =
         V.map
           (SV.map fromIntegral . head . F.toList . monomials . quotRepr)
@@ -451,7 +459,7 @@ instance PrettyCoeff Double where
     | otherwise = Positive $ showsPrec d r
 
 -- | @'Weil' 'D1' r@ Corresponds to @'Dual' r@ numbers;
---   Just \(\mathbb{R}[X]/X^2\).
+--   Just an \(\mathbb{R}[X]/X^2\).
 data D1
 
 weilToVector
@@ -463,6 +471,7 @@ instance Reifies D1 (WeilSettings 2 1) where
   reflect = const $
     WeilSettings
     { weilBasis = SV.singleton 0 :< SV.singleton 1 :< NilR
+    , weilGBasis = toIdeal [var 0 ^ 2]
     , monomUpperBound = SV.singleton 1
     , table = HM.fromList [((0,0), one), ((0, 1), var 0), ((1,1), zero)]
     }
@@ -493,6 +502,10 @@ instance
   reflect = const $
     let weil  = reflect @d Proxy :: WeilSettings n m
         weil' = reflect @d' Proxy :: WeilSettings n' m'
+        gbs = toIdeal $ 
+            map castPolynomial (F.toList $ weilGBasis weil) 
+                <>
+            map (shiftR (sing @m)) (F.toList $ weilGBasis weil')
         wbs = SV.concat
           $ SV.map
             (\w -> SV.map (w SV.++) $ weilBasis weil')
@@ -516,6 +529,7 @@ instance
             ]
     in WeilSettings
         { weilBasis = wbs
+        , weilGBasis = gbs
         , monomUpperBound = mub
         , table = tab
         }
@@ -537,11 +551,12 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
     in WeilSettings
     { weilBasis = SV.generate (sing @n) (SV.singleton . toEnum . fromEnum)
     , monomUpperBound = SV.singleton $ n - 1
+    , weilGBasis = toIdeal [var 0 ^ natVal' @n proxy#]
     , table = HM.fromList
         [ ((i, j), c)
         | j <- [0..fromIntegral n - 1]
         , i <- [0..j]
-        , let c = if i + j >= fromIntegral n then 0 else var 0 ^ (fromIntegral $ i + j)
+        , let c = if i + j >= fromIntegral n then 0 else var 0 ^ fromIntegral (i + j)
         ]
     }
 
