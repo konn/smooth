@@ -45,9 +45,10 @@ module Numeric.Algebra.Smooth.Weil
   )
 where
 
-import Algebra.Algorithms.Groebner (isIdealMember)
+import Algebra.Algorithms.Groebner (calcGroebnerBasis, isIdealMember)
 import Algebra.Algorithms.Groebner.Signature.Rules ()
-import Algebra.Algorithms.ZeroDim (radical)
+import Algebra.Algorithms.ZeroDim (radical, vectorRep)
+import Algebra.Prelude.Core (SNat, ordToInt, ordToNatural)
 import Algebra.Ring.Ideal
   ( Ideal,
     mapIdeal,
@@ -74,12 +75,13 @@ import Control.Lens
   )
 import Data.Coerce (coerce)
 import qualified Data.Foldable as F
+import qualified Data.HashMap.Lazy as LHM
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 import qualified Data.Map as M
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
-import Data.MonoTraversable (osum)
+import Data.MonoTraversable (MonoTraversable (otraverse), osum)
 import Data.Monoid (Sum (Sum))
 import Data.Proxy (Proxy (..))
 import qualified Data.Ratio as R
@@ -370,26 +372,30 @@ polyToWeil a =
   case reflect @s Proxy of
     WeilSettings {..} ->
       let calcProj ::
-            OrderedMonomial Grevlex n ->
+            Monomial n ->
             WrapFractional r ->
             Vec m r
           calcProj mon coe =
-            let cs =
-                  fromOrderedMonomial mon
-                    `modPolynomial` weilGBasis
-             in weilBasis <&> \uv ->
-                  unwrapFractional $
-                    fromRational' @r (coeff' (SV.map fromIntegral uv) cs)
-                      * coe
-          (less, eq) =
-            Map.split (SV.map fromIntegral monomUpperBound) $
+            maybe
+              (SV.replicate' 0)
+              (SV.map (unwrapFractional . (* coe) . fromRational'))
+              $ HM.lookup
+                (SV.map fromIntegral mon)
+                weilMonomDic
+          intUb = SV.map fromIntegral monomUpperBound
+          (less, eq, _) =
+            Map.splitLookup intUb $
               terms' a
           coes =
-            ifoldMapBy
-              (SV.zipWithSame (P.+))
-              (SV.replicate' 0)
-              calcProj
-              $ terms a
+            maybe
+              id
+              (SV.zipWithSame (P.+) . calcProj intUb)
+              eq
+              $ ifoldMapBy
+                (SV.zipWithSame (P.+))
+                (SV.replicate' 0)
+                calcProj
+                less
        in Weil coes
 
 weilToPoly ::
@@ -478,6 +484,7 @@ data WeilSettings m n where
     { weilBasis :: Vec m (UVec n Word)
     , monomUpperBound :: UVec n Word
     , weilGBasis :: Ideal (Polynomial Rational n)
+    , weilMonomDic :: HM.HashMap (UVec n Word) (Vec m Rational)
     , table :: HM.HashMap (Int, Int) (Polynomial Rational n)
     } ->
     WeilSettings m n
@@ -562,9 +569,19 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
               weilBasis0
   guard $ all (`isIdealMember` rootI) vs
   case SV.toSomeSized weilBasis0 of
-    SV.SomeSized sn weilBasis ->
+    SV.SomeSized (sn :: SNat m) weilBasis ->
       withKnownNat sn $
-        pure $ SomeWeil WeilSettings {..}
+        let weilMonomDic =
+              HM.fromList
+                [ (mon, SV.unsafeToSized' @m pol)
+                | mon <- otraverse (enumFromTo 0) monomUpperBound
+                , let pol =
+                        vectorRep $
+                          modIdeal' p $
+                            fromMonomial $
+                              SV.map fromIntegral mon
+                ]
+         in pure $ SomeWeil WeilSettings {..}
 
 deriving newtype instance (PrettyCoeff a) => PrettyCoeff (WrapFractional a)
 
@@ -591,6 +608,11 @@ instance Reifies D1 (WeilSettings 2 1) where
     const $
       WeilSettings
         { weilBasis = SV.singleton 0 :< SV.singleton 1 :< NilR
+        , weilMonomDic =
+            HM.fromList
+              [ (SV.singleton 0, 1 :< 0 :< SV.NilR)
+              , (SV.singleton 1, 0 :< 1 :< SV.NilR)
+              ]
         , weilGBasis = toIdeal [var 0 ^ 2]
         , monomUpperBound = SV.singleton 1
         , table = HM.fromList [((0, 0), one), ((0, 1), var 0), ((1, 1), zero)]
@@ -633,8 +655,10 @@ instance
           weil' = reflect @d' Proxy :: WeilSettings n' m'
           gbs =
             toIdeal $
-              map castPolynomial (F.toList $ weilGBasis weil)
-                <> map (shiftR (sing @m)) (F.toList $ weilGBasis weil')
+              calcGroebnerBasis $
+                toIdeal $
+                  map castPolynomial (F.toList $ weilGBasis weil)
+                    <> map (shiftR (sing @m)) (F.toList $ weilGBasis weil')
           wbs =
             SV.concat $
               SV.map
@@ -662,6 +686,17 @@ instance
        in WeilSettings
             { weilBasis = wbs
             , weilGBasis = gbs
+            , weilMonomDic =
+                HM.fromList
+                  [ (mon, coes)
+                  | mon <- otraverse (enumFromTo 0) mub
+                  , let pol =
+                          flip modPolynomial gbs $
+                            fromMonomial $
+                              SV.map fromIntegral mon
+                        coes =
+                          SV.map ((`coeff'` pol) . SV.map fromIntegral) wbs
+                  ]
             , monomUpperBound = mub
             , table = tab
             }
@@ -685,6 +720,13 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
       let n = fromIntegral (natVal' @n proxy#)
        in WeilSettings
             { weilBasis = SV.generate (sing @n) (SV.singleton . toEnum . fromEnum)
+            , weilMonomDic =
+                HM.fromList
+                  [ ( SV.singleton $ fromIntegral $ ordToNatural i
+                    , diag i
+                    )
+                  | i <- enumOrdinal $ sing @n
+                  ]
             , monomUpperBound = SV.singleton $ n - 1
             , weilGBasis = toIdeal [var 0 ^ natVal' @n proxy#]
             , table =
