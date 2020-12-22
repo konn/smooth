@@ -57,19 +57,26 @@ diff f x = inifinitesimal $ f (AD x 1)
 
 -- >>> let x = pi/4 + d
 -- >>> cos x  + sin x
+-- 1.414213562373095 + 1.1102230246251565e-16 d
 
 -- >>> cos (pi/4) + sin (pi/4)
+-- 1.414213562373095
 
 -- >>> -sin (pi/4) + cos (pi/4)
+-- 1.1102230246251565e-16
 
 -- * 記号微分の復元
 
 -- >>> :type x
+-- x :: Symbolic
 
 -- >>> normalise <$> cos (AD x 1) + sin (AD x 1)
+-- (cos x + sin x) + (- (sin x) + cos x) d
 
 -- * 二重数の冪零性
 
 -- >>> d
+-- 0 + 1 d
 
 -- >>> d * d
+-- 0 + 0 d
