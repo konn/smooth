@@ -728,7 +728,7 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
                   | i <- enumOrdinal $ sing @n
                   ]
             , monomUpperBound = SV.singleton $ n - 1
-            , weilGBasis = toIdeal [var 0 ^ natVal' @n proxy#]
+            , weilGBasis = toIdeal [var 0 ^ fromIntegral n]
             , table =
                 HM.fromList
                   [ ((i, j), c)
