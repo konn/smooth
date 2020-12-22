@@ -53,6 +53,8 @@ d = AD 0 1
 diff :: Floating a => (forall x. Floating x => x -> x) -> a -> a
 diff f x = inifinitesimal $ f (AD x 1)
 
+-- * DEMO 1
+
 -- >>> let x = pi/4 + d
 -- >>> cos x  + sin x
 
