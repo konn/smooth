@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ExplicitNamespaces #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
@@ -13,8 +12,14 @@
 
 module Numeric.Algebra.Smooth.WeilSpec where
 
+import Algebra.Prelude.Core (IsPolynomial (terms'), SNat, withKnownNat)
+import AlgebraicPrelude (WrapFractional (WrapFractional))
+import Control.Lens (alaf)
 import Data.Foldable as F
 import qualified Data.Map as M
+import Data.Map.Strict (Map)
+import Data.MonoTraversable
+import Data.Monoid (Product (Product))
 import Data.Proxy
 import Data.Semialign.Indexed
 import Data.Singletons.Prelude (sing)
@@ -31,9 +36,12 @@ import GHC.TypeNats
 import Numeric.Algebra.Smooth
 import Numeric.Algebra.Smooth.Classes ()
 import Numeric.Algebra.Smooth.Dual ()
+import Numeric.Algebra.Smooth.PowerSeries (factorial)
 import Numeric.Algebra.Smooth.Types
 import Numeric.Algebra.Smooth.Weil
 import Test.QuickCheck
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.QuickCheck (testProperty)
 import Utils
 
 prop_WeilD1_coincides_with_Dual_on_sin :: Property
@@ -223,3 +231,97 @@ prop_diffUpTo'_equivalent_to_diffUpTo =
                   )
                   teacher
                   tested
+
+test_WeilProduct :: TestTree
+test_WeilProduct =
+  testGroup
+    "Weil (Dn |*| Dk)"
+    [ testProperty "D2 |*| D3" $ chkWeilProduct (sing @2) (sing @3)
+    , testProperty "D3 |*| D2" $ chkWeilProduct (sing @3) (sing @2)
+    , testProperty "D2 |*| D4" $ chkWeilProduct (sing @2) (sing @4)
+    , testProperty "D2 |*| D3 |*| D2" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
+        let f :: forall x. Floating x => Vec 3 x -> Vec 1 x
+            f = SV.singleton . evalExpr expr
+            expected :: Map (UVec 3 Int) Double
+            expected =
+              M.mapKeysMonotonic (SV.map fromIntegral . convVec) $
+                M.mapMaybe
+                  ( \(d :< NilR) ->
+                      if d == 0 then Nothing else Just d
+                  )
+                  $ multDiffUpTo (1 :< 2 :< 1 :< NilR) f (x :< y :< z :< NilR)
+            result =
+              M.mapMaybe
+                ( \(WrapFractional d) ->
+                    if d == 0 then Nothing else Just d
+                )
+                $ terms' $
+                  weilToPoly $
+                    liftSmooth
+                      @(Weil (DOrder 2 |*| DOrder 3 |*| DOrder 2) Double)
+                      (SV.head . f)
+                      (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< injCoeWeil z + di 2 :< NilR)
+         in conjoin $
+              toList $
+                ialignWith
+                  ( \k th ->
+                      counterexample ("Partial Derivative: " <> show k) $
+                        case th of
+                          (This d) -> d ==~ 0
+                          (That d) -> 0 ==~ d
+                          (These d d') ->
+                            fromIntegral
+                              (alaf Product ofoldMap (factorial . fromIntegral) k)
+                              * d ==~ d'
+                  )
+                  result
+                  expected
+    ]
+
+chkWeilProduct :: SNat n -> SNat m -> TotalExpr 2 -> Double -> Double -> Property
+chkWeilProduct
+  (sn :: SNat n)
+  (sm :: SNat m)
+  (TotalExpr expr :: TotalExpr 2)
+  (x :: Double)
+  y =
+    withKnownNat sn $
+      withKnownNat sm $
+        let n = fromIntegral $ natVal sn
+            m = fromIntegral $ natVal sm
+            f :: forall x. Floating x => Vec 2 x -> Vec 1 x
+            f = SV.singleton . evalExpr expr
+            expected :: Map (UVec 2 Int) Double
+            expected =
+              M.mapKeysMonotonic (SV.map fromIntegral . convVec) $
+                M.mapMaybe
+                  ( \(d :< NilR) ->
+                      if d == 0 then Nothing else Just d
+                  )
+                  $ multDiffUpTo (n -1 :< m -1 :< NilR) f (x :< y :< NilR)
+            result =
+              M.mapMaybe
+                ( \(WrapFractional d) ->
+                    if d == 0 then Nothing else Just d
+                )
+                $ terms' $
+                  weilToPoly $
+                    liftSmooth
+                      @(Weil (DOrder n |*| DOrder m) Double)
+                      (SV.head . f)
+                      (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< NilR)
+         in conjoin $
+              toList $
+                ialignWith
+                  ( \k th ->
+                      counterexample ("Partial Derivative: " <> show k) $
+                        case th of
+                          (This d) -> d ==~ 0
+                          (That d) -> 0 ==~ d
+                          (These d d') ->
+                            fromIntegral
+                              (alaf Product ofoldMap (factorial . fromIntegral) k)
+                              * d ==~ d'
+                  )
+                  result
+                  expected
