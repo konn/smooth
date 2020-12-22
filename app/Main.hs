@@ -27,6 +27,8 @@ import Prelude ((*), (+), (-), (/), (^))
 
 -- * 高階微分の例
 
+-- f = exp x * sin x の4階までの微分係数を求めてみる。
+
 f, f', f'2, f'3, f'4 :: (Floating x) => x -> x
 f x = exp x * sin x
 f' x = exp x * sin x + exp x * cos x
@@ -34,15 +36,16 @@ f'2 x = 2 * exp x * cos x
 f'3 x = 2 * (exp x * cos x - exp x * sin x)
 f'4 x = -4 * f x
 
+-- まず pi/6 までの微分係数を計算しておく
+-- >>> AP.map ($ pi/6) [f, f', f'2, f'3, f'4]
+
 -- >>> f (pi/6 + dn @0 + dn @1 + dn @2 + dn @3) :: Duals 4 Double
 
+-- 上のD(2)^n を使って計算する関数が次：
 -- >>> diffUpTo 4 f $ pi/6
 
+-- 記号微分を入れてみる
 -- >>> normalise <$> diffUpTo 4 f x
-
--- 試しに三階微分まで見てみよう。
-
--- >>> fmap normalise $ f $ fromCoeff x + dn @0 + dn @1 + dn @2 :: Duals 3 Symbolic
 
 -- * 一般の Weil代数
 
@@ -53,7 +56,7 @@ idealX4 = toIdeal [var 0 ^ 4]
 
 -- >>> isWeil idealX4
 
--- 若干見づらいが、基底は e^0 (=1), e^1, e^2, e^3 で最大次数は (2),
+-- 若干見づらいが、基底は e^0 (=1), e^1, e^2, e^3 で最大次数は (3),
 -- そして乗算表が手に入っている（今回の場合は自明だけど……）
 
 -- これを使って、3階微分までの値が計算出来るかを見てみよう。
@@ -66,15 +69,18 @@ idealX4 = toIdeal [var 0 ^ 4]
 -- 確かに 3 階微分の値まで計算出来ている！
 
 -- 今度は多変数関数の偏導関数を一挙に求めてみよう
+-- x について2階、yについて1階まで求めてみる。
 
-δ1 :: (Eq a, Floating a) => Weil (DOrder 4 |*| DOrder 3) a
+-- それには、R[X]/(X^3) ⨂ R[Y]/(Y^2) の冪零構造を使えばよい。
+
+δ1 :: (Eq a, Floating a) => Weil (DOrder 3 |*| DOrder 2) a
 δ1 = di 0
 
-δ2 :: (Eq a, Floating a) => Weil (DOrder 4 |*| DOrder 3) a
+δ2 :: (Eq a, Floating a) => Weil (DOrder 3 |*| DOrder 2) a
 δ2 = di 1
 
 -- >>> import Data.Reflection
--- >>> reflect $ Proxy @(DOrder 4 |*| DOrder 3)
+-- >>> reflect $ Proxy @(DOrder 3 |*| DOrder 2)
 
 f2 :: Floating r => r -> r -> r
 f2 x y = sin x * cos y
@@ -93,10 +99,10 @@ f2 x y = sin x * cos y
 -- 冪零ではないので、ちゃんと弾かれている。
 
 -- 意味はパッとわからないが、ちゃんと Weil代数になる筈のやつを見てみよう。
--- R[e,d] = R[x, y]/(x^3 - y^2, y^3)
+-- R[e,d] = R[x, y]/(x^3 - y, y^2)
 
 red :: Ideal (Polynomial AP.Rational 2)
-red = toIdeal [x ^ 3 - y ^ 2, y ^ 3]
+red = toIdeal [x ^ 3 - y, y ^ 2]
   where
     [x, y] = vars
 
