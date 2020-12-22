@@ -83,7 +83,7 @@ import qualified Data.HashSet as HS
 import qualified Data.Map as M
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
-import Data.MonoTraversable (MonoTraversable (otraverse), osum)
+import Data.MonoTraversable (oany, osum, otraverse)
 import Data.Monoid (Sum (Sum))
 import Data.Proxy (Proxy (..))
 import qualified Data.Ratio as R
@@ -559,6 +559,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
               V.toList $ V.indexed weilBasis0
           , i <= j
           , let c = quotRepr $ modIdeal' p (fromMonomial m * fromMonomial n)
+          , c /= 0
           ]
       rootI = radical $ mapIdeal convertPolynomial ps
       monomUpperBound =
@@ -572,7 +573,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
     SV.SomeSized (sn :: SNat m) weilBasis ->
       withKnownNat sn $
         let weilMonomDic =
-              HM.fromList
+              LHM.fromList
                 [ (mon, SV.unsafeToSized' @m pol)
                 | mon <- otraverse (enumFromTo 0) monomUpperBound
                 , let pol =
@@ -580,6 +581,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
                           modIdeal' p $
                             fromMonomial $
                               SV.map fromIntegral mon
+                , oany (/= 0) pol
                 ]
          in pure $ SomeWeil WeilSettings {..}
 
@@ -614,7 +616,7 @@ instance Reifies D1 (WeilSettings 2 1) where
               , (SV.singleton 1, 0 :< 1 :< SV.NilR)
               ]
         , monomUpperBound = SV.singleton 1
-        , table = HM.fromList [((0, 0), one), ((0, 1), var 0), ((1, 1), zero)]
+        , table = HM.fromList [((0, 0), one), ((0, 1), var 0)]
         }
 
 -- | \(\mathbb{R} \oplus D(2) = k[x,y]/(x^2,y^2,xy) \)
@@ -664,31 +666,30 @@ instance
             monomUpperBound weil SV.++ monomUpperBound weil'
           tab =
             HM.fromList
-              [ ((i, j), pl * pr)
+              [ ((i, j), castPolynomial pl * shiftR (sing @m) pr)
               | j <- [0 .. n * n' - 1]
               , i <- [0 .. j]
               , let (il, ir) = i `P.divMod` n'
                     (jl, jr) = j `P.divMod` n'
-                    pl =
-                      castPolynomial $
-                        table weil HM.! (min il jl, max il jl)
-                    pr =
-                      shiftR (sing @m) $
-                        table weil' HM.! (min ir jr, max ir jr)
+              , pl <-
+                  maybeToList $
+                    HM.lookup (min il jl, max il jl) $ table weil
+              , pr <-
+                  maybeToList $
+                    HM.lookup (min ir jr, max ir jr) $ table weil'
               ]
        in WeilSettings
             { weilBasis = wbs
             , weilMonomDic =
-                HM.fromList
+                LHM.fromList
                   [ (mon, coes)
-                  | lh <- otraverse (enumFromTo 0) $ monomUpperBound weil
-                  , rh <- otraverse (enumFromTo 0) $ monomUpperBound weil'
+                  | (lh, SV.unsized -> lCoes) <- HM.toList $ weilMonomDic weil
+                  , (rh, SV.unsized -> rCoes) <- HM.toList $ weilMonomDic weil'
                   , let mon = lh SV.++ rh
-                        lCoes = SV.unsized $ weilMonomDic weil HM.! lh
-                        rCoes = SV.unsized $ weilMonomDic weil' HM.! rh
                         coes = SV.generate sing $ \on ->
                           let (l, r) = fromIntegral (ordToNatural on) `P.divMod` n'
                            in (lCoes V.! l) * (rCoes V.! r)
+                  , oany (/= 0) coes
                   ]
             , monomUpperBound = mub
             , table = tab
@@ -722,11 +723,12 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
                   ]
             , monomUpperBound = SV.singleton $ n - 1
             , table =
-                HM.fromList
+                LHM.fromList
                   [ ((i, j), c)
                   | j <- [0 .. fromIntegral n - 1]
                   , i <- [0 .. j]
-                  , let c = if i + j >= fromIntegral n then 0 else var 0 ^ fromIntegral (i + j)
+                  , i + j < fromIntegral n
+                  , let c = var 0 ^ fromIntegral (i + j)
                   ]
             }
 
