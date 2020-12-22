@@ -49,7 +49,7 @@ where
 
 import Algebra.Algorithms.Groebner (calcGroebnerBasis, isIdealMember)
 import Algebra.Algorithms.Groebner.Signature.Rules ()
-import Algebra.Algorithms.ZeroDim (radical, vectorRep)
+import Algebra.Algorithms.ZeroDim (radical, univPoly, vectorRep)
 import Algebra.Prelude.Core (SNat, ordToInt, ordToNatural)
 import Algebra.Ring.Ideal
   ( Ideal,
@@ -545,8 +545,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
   qBasis0 <-
     V.fromList
       <$> standardMonomials' p
-  let vs = vars
-      weilBasis0 =
+  let weilBasis0 =
         V.map
           (SV.map fromIntegral . head . F.toList . monomials . quotRepr)
           qBasis0
@@ -561,14 +560,11 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
           , let c = quotRepr $ modIdeal' p (fromMonomial m * fromMonomial n)
           , c /= 0
           ]
-      rootI = radical $ mapIdeal convertPolynomial ps
+      pgens = SV.generate sing $ \i -> univPoly i ps
       monomUpperBound =
-        convVec $
-          SV.map (fromIntegral . maximum) $
-            traverse
-              (convVec @V.Vector)
-              weilBasis0
-  guard $ all (`isIdealMember` rootI) vs
+        convVec @_ @V.Vector $
+          SV.map (fromIntegral . pred . totalDegree') pgens
+  guard $ all isMonomial pgens
   case SV.toSomeSized weilBasis0 of
     SV.SomeSized (sn :: SNat m) weilBasis ->
       withKnownNat sn $
@@ -584,6 +580,9 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
                 , oany (/= 0) pol
                 ]
          in pure $ SomeWeil WeilSettings {..}
+
+isMonomial :: KnownNat n => OrderedPolynomial Rational Grevlex n -> Bool
+isMonomial = (== 1) . Map.size . Map.filter (/= 0) . terms'
 
 deriving newtype instance (PrettyCoeff a) => PrettyCoeff (WrapFractional a)
 
