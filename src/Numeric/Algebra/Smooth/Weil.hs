@@ -20,7 +20,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
+{-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
 
 module Numeric.Algebra.Smooth.Weil
   ( Weil (Weil),
@@ -483,7 +485,6 @@ data WeilSettings m n where
     (KnownNat n, KnownNat m) =>
     { weilBasis :: Vec m (UVec n Word)
     , monomUpperBound :: UVec n Word
-    , weilGBasis :: Ideal (Polynomial Rational n)
     , weilMonomDic :: HM.HashMap (UVec n Word) (Vec m Rational)
     , table :: HM.HashMap (Int, Int) (Polynomial Rational n)
     } ->
@@ -545,7 +546,6 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
     V.fromList
       <$> standardMonomials' p
   let vs = vars
-      weilGBasis = toIdeal $ gBasis' p
       weilBasis0 =
         V.map
           (SV.map fromIntegral . head . F.toList . monomials . quotRepr)
@@ -613,7 +613,6 @@ instance Reifies D1 (WeilSettings 2 1) where
               [ (SV.singleton 0, 1 :< 0 :< SV.NilR)
               , (SV.singleton 1, 0 :< 1 :< SV.NilR)
               ]
-        , weilGBasis = toIdeal [var 0 ^ 2]
         , monomUpperBound = SV.singleton 1
         , table = HM.fromList [((0, 0), one), ((0, 1), var 0), ((1, 1), zero)]
         }
@@ -653,12 +652,6 @@ instance
     const $
       let weil = reflect @d Proxy :: WeilSettings n m
           weil' = reflect @d' Proxy :: WeilSettings n' m'
-          gbs =
-            toIdeal $
-              calcGroebnerBasis $
-                toIdeal $
-                  map castPolynomial (F.toList $ weilGBasis weil)
-                    <> map (shiftR (sing @m)) (F.toList $ weilGBasis weil')
           wbs =
             SV.concat $
               SV.map
@@ -685,17 +678,17 @@ instance
               ]
        in WeilSettings
             { weilBasis = wbs
-            , weilGBasis = gbs
             , weilMonomDic =
                 HM.fromList
                   [ (mon, coes)
-                  | mon <- otraverse (enumFromTo 0) mub
-                  , let pol =
-                          flip modPolynomial gbs $
-                            fromMonomial $
-                              SV.map fromIntegral mon
-                        coes =
-                          SV.map ((`coeff'` pol) . SV.map fromIntegral) wbs
+                  | lh <- otraverse (enumFromTo 0) $ monomUpperBound weil
+                  , rh <- otraverse (enumFromTo 0) $ monomUpperBound weil'
+                  , let mon = lh SV.++ rh
+                        lCoes = SV.unsized $ weilMonomDic weil HM.! lh
+                        rCoes = SV.unsized $ weilMonomDic weil' HM.! rh
+                        coes = SV.generate sing $ \on ->
+                          let (l, r) = fromIntegral (ordToNatural on) `P.divMod` n'
+                           in (lCoes V.! l) * (rCoes V.! r)
                   ]
             , monomUpperBound = mub
             , table = tab
@@ -728,7 +721,6 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
                   | i <- enumOrdinal $ sing @n
                   ]
             , monomUpperBound = SV.singleton $ n - 1
-            , weilGBasis = toIdeal [var 0 ^ fromIntegral n]
             , table =
                 HM.fromList
                   [ ((i, j), c)
