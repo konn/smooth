@@ -220,7 +220,7 @@ withPows ::
   (KnownNat n, KnownNat m, Eq a, Floating a) =>
   (forall k. KnownNat k => UVec n Word -> Vec m (Duals k a) -> r) ->
   UVec n Word ->
-  (forall x. Floating x => Vec n x -> Vec m x) ->
+  (forall x. (Eq x, Floating x) => Vec n x -> Vec m x) ->
   Vec n a ->
   r
 withPows k deg f xs = case someNatVal (fromIntegral $ osum deg) of
@@ -279,7 +279,7 @@ multDiffUpTo ::
   forall n m a.
   (KnownNat n, KnownNat m, Eq a, Floating a) =>
   UVec n Word ->
-  (forall x. Floating x => Vec n x -> Vec m x) ->
+  (forall x. (Eq x, Floating x) => Vec n x -> Vec m x) ->
   Vec n a ->
   M.Map (Vec n Word) (Vec m a)
 multDiffUpTo = withPows $ \pows (ds :: Vec m (Duals k a)) ->
@@ -349,7 +349,7 @@ instance
    each distinct infinitesimals.
 -}
 newtype Duals n a = Duals {runDuals :: Vec (2 ^ n) a}
-  deriving (Foldable, Functor)
+  deriving (Foldable, Functor, Eq)
   deriving
     ( Additive
     , NA.Monoidal

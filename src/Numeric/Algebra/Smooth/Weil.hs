@@ -50,7 +50,7 @@ where
 import Algebra.Algorithms.Groebner (calcGroebnerBasis, isIdealMember)
 import Algebra.Algorithms.Groebner.Signature.Rules ()
 import Algebra.Algorithms.ZeroDim (radical, univPoly, vectorRep)
-import Algebra.Prelude.Core (SNat, ordToInt, ordToNatural)
+import Algebra.Prelude.Core (Ordinal, SNat, ordToInt, ordToNatural)
 import Algebra.Ring.Ideal
   ( Ideal,
     mapIdeal,
@@ -65,10 +65,13 @@ import Algebra.Ring.Polynomial.Quotient
     reifyQuotient,
     standardMonomials',
   )
+import Algebra.Scalar
 import AlgebraicPrelude
 import Control.Arrow (Arrow (first))
 import Control.Lens
-  ( ifoldMapBy,
+  ( FoldableWithIndex (ifoldMap),
+    alaf,
+    ifoldMapBy,
     itoList,
     re,
     (:~:) (..),
@@ -91,6 +94,7 @@ import Data.Reflection
   ( Reifies (..),
     reify,
   )
+import Data.Semigroup (Product (Product))
 import Data.Singletons.Decide (decideEquality)
 import Data.Singletons.Prelude (sing)
 import Data.Singletons.TypeLits (withKnownNat)
@@ -114,6 +118,7 @@ import Numeric.Algebra.Smooth.Classes
     liftBinary,
     liftUnary,
   )
+import Numeric.Algebra.Smooth.Dual (multDiffUpTo)
 import Numeric.Algebra.Smooth.PowerSeries
   ( PowerSeries (Powers),
     cutoff,
@@ -160,71 +165,72 @@ pattern Weil v <-
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Additive (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Monoidal (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Group (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Abelian (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Rig (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Commutative (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Multiplicative (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Semiring (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Unital (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Ring (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     LeftModule Natural (Weil s r)
 
 instance
-  ( Semiring r
+  ( Real r
+  , Semiring r
   , KnownNat m
   , KnownNat n
   , Eq r
@@ -236,7 +242,8 @@ instance
   (.*) = coerce $ V.map @r . (NA.*)
 
 instance
-  ( Semiring r
+  ( Real r
+  , Semiring r
   , KnownNat m
   , KnownNat n
   , Eq r
@@ -250,19 +257,19 @@ instance
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     RightModule Natural (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     LeftModule Integer (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     RightModule Integer (Weil s r)
 
 fromRational' ::
@@ -280,7 +287,7 @@ injCoeWeil a =
       (\i -> if i == 0 then a else 0)
 
 instance
-  (KnownNat n, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+  (KnownNat n, Real r, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
   Num (Weil s r)
   where
   (+) = coerce $ V.zipWith ((P.+) @r)
@@ -308,6 +315,7 @@ instance
   ( KnownNat m
   , KnownNat n
   , Eq r
+  , Real r
   , Floating r
   , Reifies s (WeilSettings n m)
   ) =>
@@ -321,6 +329,7 @@ instance
   ( KnownNat m
   , KnownNat n
   , Eq r
+  , Real r
   , Floating r
   , Reifies s (WeilSettings n m)
   ) =>
@@ -346,24 +355,82 @@ instance
   acosh = liftUnary acosh
   atanh = liftUnary atanh
 
+liftSmoothSeries ::
+  ( Reifies s (WeilSettings n m)
+  , KnownNat k
+  , Real r
+  , Floating r
+  , Eq r
+  , KnownNat n
+  , KnownNat m
+  ) =>
+  (forall x. (Floating x) => Vec k x -> x) ->
+  Vec k (Weil s r) ->
+  Weil s r
+liftSmoothSeries f (vs :: Vec k (Weil s r)) =
+  let vs' =
+        SV.map
+          ( coerce @_ @(PowerSeries _ r)
+              . injPoly
+              . weilToPoly
+          )
+          vs
+   in toWeil $ liftSmooth f vs'
+
+liftSmoothAD ::
+  forall s k r n m.
+  ( Reifies s (WeilSettings n m)
+  , KnownNat k
+  , Real r
+  , Floating r
+  , Eq r
+  , KnownNat n
+  , KnownNat m
+  ) =>
+  (forall x. (Floating x) => Vec k x -> x) ->
+  Vec k (Weil s r) ->
+  Weil s r
+liftSmoothAD f =
+  case reflect $ Proxy @s of
+    WeilSettings {..} ->
+      \ws ->
+        let coes =
+              multDiffUpTo @m @1
+                nonZeroVarMaxPowers
+                ( \(inp :: Vec m x) ->
+                    SV.singleton $
+                      f $
+                        SV.map (($ inp) . weilToPolyFun . fmap realToFrac) ws
+                )
+                (SV.replicate' 0.0)
+         in runAdd $
+              ifoldMap
+                ( \monom c ->
+                    let fac =
+                          fromInteger $
+                            alaf Product foldMap (factorial . fromIntegral) monom
+                     in Add $
+                          maybe
+                            0
+                            ( Weil
+                                . SV.map
+                                  (((SV.head c P./ fac) P.*) . unwrapFractional . fromRational' @r)
+                            )
+                            (HM.lookup (convVec monom) weilMonomDic)
+                )
+                coes
+
 instance
   ( KnownNat m
   , KnownNat n
   , Eq r
   , Floating r
+  , Real r
   , Reifies s (WeilSettings n m)
   ) =>
   SmoothRing (Weil s r)
   where
-  liftSmooth f (vs :: KnownNat k => Vec k (Weil s r)) =
-    let vs' =
-          SV.map
-            ( coerce @_ @(PowerSeries _ r)
-                . injPoly
-                . weilToPoly
-            )
-            vs
-     in toWeil $ liftSmooth f vs'
+  liftSmooth = liftSmoothAD
 
 polyToWeil ::
   forall s r n m.
@@ -463,13 +530,13 @@ toWeil ps =
        in polyToWeil $ dic ^. re _Terms'
 
 instance
-  (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+  (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
   LeftModule (WrapFractional Double) (Weil s r)
   where
   (.*) (WrapFractional d) = coerce $ V.map (realToFrac @_ @r d P.*)
 
 instance
-  (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+  (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
   RightModule (WrapFractional Double) (Weil s r)
   where
   Weil_ a *. WrapFractional d =
@@ -590,6 +657,95 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
 
 isMonomial :: KnownNat n => OrderedPolynomial Rational Grevlex n -> Bool
 isMonomial = (== 1) . Map.size . Map.filter (/= 0) . terms'
+
+{- | Polynomial funtion corresponding to an given element
+   of Weil algebra.
+-}
+weilToPolyFun ::
+  (Fractional r, Eq r, KnownNat n, KnownNat m) =>
+  Reifies s (WeilSettings n m) =>
+  Weil s r ->
+  Vec m r ->
+  r
+weilToPolyFun = polyToFun . weilToPoly
+
+polyToFun ::
+  forall r n.
+  (Eq r, Num r, KnownNat n) =>
+  Polynomial (WrapFractional r) n ->
+  Vec n r ->
+  r
+polyToFun =
+  coerce . liftMap (\i -> WrapFun @(Vec n r) (WrapFractional . (SV.%!! i)))
+
+newtype WrapFun a b = WrapFun {unwrapFun :: a -> b}
+  deriving newtype
+    ( Abelian
+    , Additive
+    , Monoidal
+    , Group
+    )
+
+instance Num b => Num (WrapFun a b) where
+  fromInteger = WrapFun . const . fromInteger
+  (+) = coerce $ liftA2 @((->) a) $ (P.+) @b
+  (-) = coerce $ liftA2 @((->) a) $ (P.-) @b
+  (*) = coerce $ liftA2 @((->) a) $ (P.*) @b
+  signum = coerce ((signum .) :: (a -> b) -> a -> b)
+  negate = coerce ((P.negate .) :: (a -> b) -> a -> b)
+  abs = coerce ((P.abs .) :: (a -> b) -> a -> b)
+
+instance Fractional b => Fractional (WrapFun a b) where
+  recip = coerce ((P.recip .) :: (a -> b) -> a -> b)
+  (/) = coerce $ liftA2 @((->) a) $ (P./) @b
+  fromRational = WrapFun . const . P.fromRational
+
+instance Floating b => Floating (WrapFun a b) where
+  log = coerce $ fmap @((->) a) @b log
+  logBase = coerce $ liftA2 @((->) a) @b logBase
+  exp = coerce $ fmap @((->) a) @b exp
+  (**) = coerce $ liftA2 @((->) a) @b (**)
+
+  pi = WrapFun $ const pi
+  sin = coerce $ fmap @((->) a) @b sin
+  cos = coerce $ fmap @((->) a) @b cos
+  tan = coerce $ fmap @((->) a) @b tan
+  asin = coerce $ fmap @((->) a) @b asin
+  acos = coerce $ fmap @((->) a) @b acos
+  atan = coerce $ fmap @((->) a) @b atan
+
+  sinh = coerce $ fmap @((->) a) @b sinh
+  cosh = coerce $ fmap @((->) a) @b cosh
+  tanh = coerce $ fmap @((->) a) @b tanh
+  asinh = coerce $ fmap @((->) a) @b asinh
+  acosh = coerce $ fmap @((->) a) @b acosh
+  atanh = coerce $ fmap @((->) a) @b atanh
+
+instance {-# OVERLAPPING #-} Semiring b => LeftModule (Scalar b) (WrapFun a b) where
+  (.*) = \(Scalar c) (WrapFun f) -> WrapFun $ (c *) . f
+
+instance {-# OVERLAPPING #-} Semiring b => RightModule (Scalar b) (WrapFun a b) where
+  (*.) = \(WrapFun f) (Scalar c) -> WrapFun $ (* c) . f
+
+instance Multiplicative b => Multiplicative (WrapFun a b) where
+  (*) = coerce $ liftA2 @((->) a) $ (*) @b
+
+instance Unital b => Unital (WrapFun a b) where
+  one = WrapFun $ const one
+
+instance Commutative b => Commutative (WrapFun a b)
+
+instance Semiring b => Semiring (WrapFun a b)
+
+instance Rig b => Rig (WrapFun a b) where
+  fromNatural i = WrapFun $ const $ fromNatural i
+
+instance Ring b => Ring (WrapFun a b) where
+  fromInteger i = WrapFun $ const $ fromInteger' i
+
+deriving newtype instance (LeftModule c b) => LeftModule c (WrapFun a b)
+
+deriving newtype instance (RightModule c b) => RightModule c (WrapFun a b)
 
 deriving newtype instance (PrettyCoeff a) => PrettyCoeff (WrapFractional a)
 
@@ -740,7 +896,7 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
 
 diffUpTo' ::
   forall a.
-  (Eq a, Floating a) =>
+  (Real a, Eq a, Floating a) =>
   Word ->
   (forall x. Floating x => x -> x) ->
   a ->
