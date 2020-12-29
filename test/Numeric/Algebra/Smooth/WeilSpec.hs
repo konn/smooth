@@ -239,7 +239,8 @@ test_WeilProduct =
     [ testProperty "D2 |*| D3" $ chkWeilProduct (sing @2) (sing @3)
     , testProperty "D3 |*| D2" $ chkWeilProduct (sing @3) (sing @2)
     , testProperty "D2 |*| D4" $ chkWeilProduct (sing @2) (sing @4)
-    , testProperty "D2 |*| D3 |*| D2" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
+    , testProperty "D4 |*| D5" $ chkWeilProduct (sing @4) (sing @5)
+    , testProperty "D2 |*| D3 |*| D4" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
         let f :: forall x. Floating x => Vec 3 x -> Vec 1 x
             f = SV.singleton . evalExpr expr
             expected :: Map (UVec 3 Int) Double
@@ -249,7 +250,7 @@ test_WeilProduct =
                   ( \(d :< NilR) ->
                       if d == 0 then Nothing else Just d
                   )
-                  $ multDiffUpTo (1 :< 2 :< 1 :< NilR) f (x :< y :< z :< NilR)
+                  $ multDiffUpTo (1 :< 2 :< 3 :< NilR) f (x :< y :< z :< NilR)
             result =
               M.mapMaybe
                 ( \(WrapFractional d) ->
@@ -258,7 +259,7 @@ test_WeilProduct =
                 $ terms' $
                   weilToPoly $
                     liftSmooth
-                      @(Weil (DOrder 2 |*| DOrder 3 |*| DOrder 2) Double)
+                      @(Weil (DOrder 2 |*| DOrder 3 |*| DOrder 4) Double)
                       (SV.head . f)
                       (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< injCoeWeil z + di 2 :< NilR)
          in conjoin $

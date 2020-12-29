@@ -414,7 +414,11 @@ liftSmoothAD f =
                             0
                             ( Weil
                                 . SV.map
-                                  (((SV.head c P./ fac) P.*) . unwrapFractional . fromRational' @r)
+                                  ( \x ->
+                                      if x == 0
+                                        then 0
+                                        else ((SV.head c P./ fac) P.*) . unwrapFractional . fromRational' @r $ x
+                                  )
                             )
                             (HM.lookup (convVec monom) weilMonomDic)
                 )
