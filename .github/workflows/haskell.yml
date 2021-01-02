@@ -52,12 +52,6 @@ jobs:
         restore-keys: |
           ${{runner.os}}-master-stack-work
 
-    - uses: actions/setup-haskell@v1.1.4
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '3.0'
-        enable-stack: true
-        stack-version: '2.5.1'
     # - name: Adds singular as dependency
     #   run: |
     #     apt-get update -y -qq && apt-get install -y -qq wget
@@ -82,6 +76,13 @@ jobs:
     steps:
 
     - uses: actions/checkout@v2
+    - uses: haskell/actions/setup@v1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '3.0'
+        enable-stack: true
+        stack-version: '2.5.1'
+
     - name: Cache ~/.stack
       uses: actions/cache@v1.1.0
       with:
