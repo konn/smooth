@@ -129,12 +129,7 @@ jobs:
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
-    - uses: actions/setup-haskell@v1.1.4
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '3.0'
-        enable-stack: true
-        stack-version: '2.5.1'
+
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
@@ -152,6 +147,13 @@ jobs:
     steps:
 
     - uses: actions/checkout@v2
+    - uses: haskell/actions/setup@v1
+      with:
+        ghc-version: '8.6.5'
+        cabal-version: '3.0'
+        enable-stack: true
+        stack-version: '2.5.1'
+
     - name: Cache ~/.stack
       uses: actions/cache@v1.1.0
       with:
@@ -198,12 +200,7 @@ jobs:
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
-    - uses: actions/setup-haskell@v1.1.4
-      with:
-        ghc-version: '8.6.5'
-        cabal-version: '3.0'
-        enable-stack: true
-        stack-version: '2.5.1'
+
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
