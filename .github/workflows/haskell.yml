@@ -265,13 +265,13 @@ jobs:
           ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-stack-work
 
-    - name: Run tests
+    - name: Run Benchmarks
       run: |
         mkdir bench-results
-        stack exec -- liftWeil-bench --csv=bench-results/liftWeil.csv
-        stack exec -- diffupto-bench --csv=bench-results/diffupto.csv
+        stack bench smooth:bench:liftWeil-bench --ba "--csv=bench-results/liftWeil.csv"
+        stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
 
-    - name: Upload a Build Artifact
+    - name: Upload benchmark results
       uses: actions/upload-artifact@v2.2.1
       with:
         name: Benchmark Results
