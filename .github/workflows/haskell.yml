@@ -52,12 +52,6 @@ jobs:
         restore-keys: |
           ${{runner.os}}-master-stack-work
 
-    # - name: Adds singular as dependency
-    #   run: |
-    #     apt-get update -y -qq && apt-get install -y -qq wget
-    #     wget ftp://jim.mathematik.uni-kl.de/repo/extra/gpg && apt-key add gpg && rm gpg
-    #     echo "deb ftp://jim.mathematik.uni-kl.de/repo/ubuntu18 bionic main" >> /etc/apt/sources.list
-    #     apt-get install singular41
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
@@ -207,3 +201,80 @@ jobs:
         sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev llvm-7-dev
     - name: Run tests
       run: stack --no-terminal build --test
+
+  bench:
+    needs:
+    - build-deps
+    - build
+    runs-on: ubuntu-latest
+
+    steps:
+
+    - uses: actions/checkout@v2
+    - uses: haskell/actions/setup@v1.1.6
+      with:
+        ghc-version: '8.8.3'
+        cabal-version: '3.0'
+        enable-stack: true
+        stack-version: '2.5.1'
+
+    - name: Cache ~/.stack
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.stack
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-stack-global
+
+    - name: Cache ~/.cabal
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.cabal
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-cabal
+
+    - name: Cache ~/.ghc
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: ~/.ghc
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
+        restore-keys: |
+          ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-ghc
+
+    - name: Cache .stack-work
+      uses: actions/cache@v1.1.0
+      with:
+        # A directory to store and save the cache
+        path: .stack-work
+        # An explicit key for restoring and saving the cache
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        restore-keys: |
+          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-stack-work
+
+    - name: Run tests
+      run: |
+        mkdir bench-results
+        stack exec -- liftWeil-bench --csv=bench-results/liftWeil.csv
+        stack exec -- diffupto-bench --csv=bench-results/liftWeil.csv
+
+    - name: Upload a Build Artifact
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        name: Benchmark Results
+        path: bench-results
+          if-no-files-found: error # optional, defaule is warn
+          retention-days: 90
