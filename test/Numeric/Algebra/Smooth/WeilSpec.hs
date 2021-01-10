@@ -392,3 +392,7 @@ chkLiftSmoothADEquiv (TotalExpr expr) inps =
   let Weil finitary = liftSmoothAD @w (evalExpr expr) $ Weil <$> inps
       Weil series = liftSmoothSeriesAD @w (evalExpr expr) $ Weil <$> inps
    in finitary ==~ series
+
+theExpr :: Expr 2
+theExpr =
+  Atan (K 0.8 :* (Arg 1 :^ 2 :* Cos (Arg 0)))
