@@ -276,5 +276,5 @@ jobs:
       with:
         name: Benchmark Results
         path: bench-results
-          if-no-files-found: error # optional, defaule is warn
-          retention-days: 90
+        if-no-files-found: error # optional, defaule is warn
+        retention-days: 90
