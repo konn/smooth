@@ -269,7 +269,7 @@ jobs:
       run: |
         mkdir bench-results
         stack exec -- liftWeil-bench --csv=bench-results/liftWeil.csv
-        stack exec -- diffupto-bench --csv=bench-results/liftWeil.csv
+        stack exec -- diffupto-bench --csv=bench-results/diffupto.csv
 
     - name: Upload a Build Artifact
       uses: actions/upload-artifact@v2.2.1
