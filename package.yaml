@@ -50,6 +50,9 @@ dependencies:
 - ListLike
 - reflection
 
+ghc-options:
+- -Wall
+
 library:
   source-dirs: src
   dependencies:
@@ -65,7 +68,6 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wall
     dependencies:
     - smooth
     - simple-reflect
@@ -108,12 +110,36 @@ benchmarks:
   diffupto-bench:
     main: diffupto-bench.hs
     source-dirs: bench
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+
     dependencies:
     - smooth
     - gauge
-  liftWeil-bench:
-    main: liftWeil.hs
+  liftWeil-speed:
+    main: liftWeil-speed.hs
     source-dirs: bench
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
     dependencies:
     - smooth
     - gauge
+  liftWeil-heap:
+    main: liftWeil-heap.hs
+    source-dirs: bench
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+    dependencies:
+    - smooth
+    - directory
+    - filepath
+    - weigh

@@ -271,7 +271,8 @@ jobs:
         sudo lshw -class processor > bench-results/processors.txt
         cp /proc/cpuinfo bench-results
         cp /proc/meminfo bench-results
-        stack bench smooth:bench:liftWeil-bench --ba "--csv=bench-results/liftWeil.csv"
+        stack bench smooth:bench:liftWeil-speed --ba "--csv=bench-results/liftWeil-speed.csv"
+        stack bench smooth:bench:liftWeil-heap --ba "--csv=bench-results/liftWeil-heap.csv"
         stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
 
     - name: Upload benchmark results
