@@ -12,3 +12,5 @@ cradle:
       component:  "app/SmallAD.hs"
     - path: "bench/diffupto-bench.hs"
       component: "smooth:bench:diffupto-bench"
+    - path: "bench/liftWeil.hs"
+      component: "smooth:bench:liftWeil-bench"

@@ -36,6 +36,7 @@ dependencies:
 - halg-polynomials
 - algebra
 - algebraic-prelude
+- deepseq
 - containers
 - foldl
 - halg-algorithms
@@ -106,6 +107,12 @@ tests:
 benchmarks:
   diffupto-bench:
     main: diffupto-bench.hs
+    source-dirs: bench
+    dependencies:
+    - smooth
+    - gauge
+  liftWeil-bench:
+    main: liftWeil.hs
     source-dirs: bench
     dependencies:
     - smooth

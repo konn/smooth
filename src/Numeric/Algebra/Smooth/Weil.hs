@@ -73,6 +73,7 @@ import Algebra.Ring.Polynomial.Quotient
 import Algebra.Scalar
 import AlgebraicPrelude
 import Control.Arrow (Arrow (first))
+import Control.DeepSeq
 import Control.Lens
   ( FoldableWithIndex (ifoldMap),
     alaf,
@@ -155,7 +156,7 @@ In particular, each equivalence class \(d_i = X_i + I\) of variables can be rega
 In this sense, the notion of Weil algebra can be thought as a formalisation of "real line with infinitesimals".
 -}
 newtype Weil s r = Weil_ {runWeil_ :: Vector r}
-  deriving newtype (P.Functor)
+  deriving newtype (P.Functor, NFData)
 
 pattern Weil ::
   forall s n m r.
