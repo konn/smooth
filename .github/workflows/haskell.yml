@@ -268,6 +268,9 @@ jobs:
     - name: Run Benchmarks
       run: |
         mkdir bench-results
+        sudo lshw -class processor > bench-results/processors.txt
+        cp /proc/cpuinfo bench-results
+        cp /proc/meminfo bench-results
         stack bench smooth:bench:liftWeil-bench --ba "--csv=bench-results/liftWeil.csv"
         stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
 
