@@ -38,6 +38,7 @@ import Data.These
 import qualified Data.Vector as V
 import GHC.Exts (proxy#)
 import GHC.TypeNats
+import qualified Numeric.AD as AD
 import Numeric.Algebra.Smooth
 import Numeric.Algebra.Smooth.Classes ()
 import Numeric.Algebra.Smooth.Dual ()
@@ -165,7 +166,7 @@ data SmoothFunc where
   SmoothFunc :: (forall x. Floating x => x -> x) -> SmoothFunc
 
 diff1' :: SmoothFunc -> SmoothFunc
-diff1' (SmoothFunc f) = SmoothFunc (diff1 f)
+diff1' (SmoothFunc f) = SmoothFunc (AD.diff f)
 
 prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative :: Property
 prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative =
@@ -245,6 +246,7 @@ test_WeilProduct =
     , testProperty "D3 |*| D2" $ chkWeilProduct (sing @3) (sing @2)
     , testProperty "D2 |*| D4" $ chkWeilProduct (sing @2) (sing @4)
     , testProperty "D4 |*| D5" $ chkWeilProduct (sing @4) (sing @5)
+    , testProperty "D4 |*| D5 (regression)" $ chkWeilProduct (sing @4) (sing @5) (TotalExpr theExpr)
     , testProperty "D2 |*| D3 |*| D4" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
         let f :: forall x. Floating x => Vec 3 x -> Vec 1 x
             f = SV.singleton . evalExpr expr
@@ -295,16 +297,25 @@ chkWeilProduct
       withKnownNat sm $
         let n = fromIntegral $ natVal sn
             m = fromIntegral $ natVal sm
-            f :: forall x. Floating x => Vec 2 x -> Vec 1 x
-            f = SV.singleton . evalExpr expr
+            f :: forall x. Floating x => Vec 2 x -> x
+            f = evalExpr expr
             expected :: Map (UVec 2 Int) Double
             expected =
-              M.mapKeysMonotonic (SV.map fromIntegral . convVec) $
-                M.mapMaybe
-                  ( \(d :< NilR) ->
-                      if d == 0 then Nothing else Just d
+              M.fromList
+                [ ( fromIntegral n0 :< fromIntegral m0 :< NilR
+                  , AD.diffs
+                      ( \b ->
+                          AD.diffs
+                            (\a -> f $ a :< AD.auto b :< NilR)
+                            (AD.auto x)
+                            !? n0
+                      )
+                      (AD.auto y)
+                      !? m0
                   )
-                  $ multDiffUpTo (n -1 :< m -1 :< NilR) f (x :< y :< NilR)
+                | n0 <- [0 .. n -1]
+                , m0 <- [0 .. m -1]
+                ]
             result =
               M.mapMaybe
                 ( \(WrapFractional d) ->
@@ -314,7 +325,7 @@ chkWeilProduct
                   weilToPoly $
                     liftSmooth
                       @(Weil (DOrder n |*| DOrder m) Double)
-                      (SV.head . f)
+                      f
                       (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< NilR)
          in conjoin $
               toList $
@@ -381,3 +392,40 @@ chkLiftSmoothADEquiv (TotalExpr expr) inps =
   let Weil finitary = liftSmoothAD @w (evalExpr expr) $ Weil <$> inps
       Weil series = liftSmoothSeriesAD @w (evalExpr expr) $ Weil <$> inps
    in finitary ==~ series
+
+-- Counter examples for D4 |*| D5
+
+degs :: UVec 2 Word
+degs = 3 SV.:< 4 SV.:< SV.NilR
+
+errInps :: Vec 2 Double
+errInps = 3 SV.:< 18 SV.:< SV.NilR
+
+theExpr :: Expr 2
+theExpr =
+  Atan (K 0.8 :* (Arg 1 :^ 2 :* Cos (Arg 0)))
+
+interped :: Floating x => x -> x -> x
+interped x y =
+  atan (0.8 * (y ^ 2 * cos x))
+
+thef :: Floating x => Vec 2 x -> x
+thef = evalExpr theExpr
+
+thef' :: Floating x => x -> x -> x
+thef' x y = thef (x SV.:< y SV.:< SV.NilR)
+
+{-
+>>> import Numeric.AD
+>>> diffs (\y -> diffs (\x -> interped x (auto y)) 3 !! 3) 18 !! 4
+-3.2497003091202094e-6
+
+prop> chkWeilProduct (sing @4) (sing @5) (TotalExpr theExpr) 3 18
+*** Failed! Falsified (after 1 test):
+Partial Derivative: [3,4]
+-3.2497003091202306e-6 ~/= 3.6043377824171983e-3
+
+>>> multDiff (3 SV.:< 4 SV.:< SV.NilR) (SV.singleton . thef) errInps
+[3.6043377824171983e-3]
+
+-}

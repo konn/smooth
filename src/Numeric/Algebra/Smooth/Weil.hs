@@ -451,7 +451,7 @@ instance
   ) =>
   SmoothRing (Weil s r)
   where
-  liftSmooth = liftSmoothAD
+  liftSmooth = liftSmoothSeriesAD
 
 polyToWeil ::
   forall s r n m.

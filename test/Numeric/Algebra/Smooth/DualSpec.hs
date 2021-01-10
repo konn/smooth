@@ -1,8 +1,11 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ExplicitNamespaces #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 
 module Numeric.Algebra.Smooth.DualSpec where
@@ -16,6 +19,8 @@ import Numeric.Algebra.Smooth.Classes
 import Numeric.Algebra.Smooth.Dual
 import Numeric.Algebra.Smooth.Types
 import Test.QuickCheck
+import Test.Tasty
+import Test.Tasty.QuickCheck
 import Utils
 
 prop_liftSmooth_coincides_with_liftDual_on_sin :: Property
@@ -54,6 +59,51 @@ prop_Dual_behaves_similarly_to_Forward_in_ad_package =
             smoothAns =
               uncurry Dual $ AD.du' f (dualToTup <$> ds)
          in dualAns ==~ smoothAns
+
+test_multDiff :: TestTree
+test_multDiff =
+  testGroup
+    "multDiff behaves similarly as ad package"
+    [ testProperty "atan (0.8 * (y ^ 2 * cos x))" $ \a b ->
+        let f :: Floating x => x -> x -> x
+            f x y = atan (0.8 * (y ^ 2 * cos x))
+         in SV.head
+              ( multDiff
+                  (3 :< 4 :< NilR)
+                  (SV.singleton . (\(x SV.:< y SV.:< SV.NilR) -> f x y))
+                  (a :< b :< NilR :: Vec 2 Double)
+              )
+              ==~ AD.diffs
+                ( \y ->
+                    AD.diffs
+                      (\x -> f x (AD.auto y))
+                      (AD.auto a)
+                      !? 3
+                )
+                b
+                !? 4
+    , testProperty "n = 2" chkMultDiff
+    ]
+
+chkMultDiff :: Property
+chkMultDiff =
+  forAll (arbitrary @(TotalExpr 2)) $ \(TotalExpr expr) ->
+    forAll (resize 4 $ arbitrary @(UVec 2 Word)) $ \degs dbls ->
+      SV.head
+        ( multDiff
+            degs
+            (SV.singleton . evalExpr expr)
+            (dbls :: Vec 2 Double)
+        )
+        ==~ AD.diffs
+          ( \y ->
+              AD.diffs
+                (\x -> evalExpr expr (x SV.:< AD.auto y SV.:< SV.NilR :: Vec 2 _))
+                (AD.auto $ dbls SV.%!! 0)
+                !? SV.head degs
+          )
+          (dbls SV.%!! 1)
+          !? SV.last degs
 
 deKonst :: Num a => Dual a -> Dual a
 deKonst (Konst a) = Dual a 0
