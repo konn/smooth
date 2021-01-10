@@ -53,6 +53,8 @@ library:
   source-dirs: src
   dependencies:
   - factorials
+  - ad
+  - free
 
 executables:
   smooth-exe:

@@ -15,6 +15,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
@@ -24,6 +25,8 @@ module Numeric.Algebra.Smooth.PowerSeries where
 import Algebra.Ring.Polynomial (IsPolynomial)
 import qualified Algebra.Ring.Polynomial as Pol
 import qualified AlgebraicPrelude as AP
+import Control.Comonad.Cofree
+import qualified Control.Comonad.Cofree as Cof
 import Control.Lens
   ( FoldableWithIndex (ifoldMap, ifolded),
     FunctorWithIndex (imap),
@@ -42,19 +45,26 @@ import Data.Monoid (Product (..))
 import Data.Semialign (alignWith)
 import qualified Data.Sequence as Seq
 import Data.Singletons.Prelude (Sing, SingI (sing))
+import qualified Data.Singletons.Prelude.Ord as Sing
 import qualified Data.Sized.Builtin as SV
 import Data.These
+import Data.Type.Equality
 import Data.Type.Natural.Class.Arithmetic
   ( ZeroOrSucc (..),
     zeroOrSucc,
   )
+import Data.Type.Natural.Class.Order
 import Data.Type.Ordinal.Builtin (Ordinal, enumOrdinal)
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 import GHC.Conc (par)
 import GHC.Generics (Generic)
+import GHC.TypeLits (type (+))
 import GHC.TypeNats (KnownNat)
+import qualified Numeric.AD as AD
+import qualified Numeric.AD.Jet as AD
+import Numeric.AD.Mode.Sparse (Sparse)
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
   ( SmoothRing (..),
@@ -64,6 +74,7 @@ import Numeric.Algebra.Smooth.Classes
 import Numeric.Algebra.Smooth.Dual (Dual (..), multDiff)
 import Numeric.Algebra.Smooth.Types (UVec, Vec, convVec)
 import Numeric.Natural (Natural)
+import Proof.Propositional (withWitness)
 
 -- | Unary formal power series, or Tower.
 newtype Series k = Series {runSeries :: [k]}
@@ -514,3 +525,42 @@ injPoly ::
   IsPolynomial r => r -> PowerSeries (Pol.Arity r) (Pol.Coefficient r)
 injPoly p = Powers $ \a ->
   Pol.coeff' (convVec $ SV.map fromIntegral a) p
+
+liftPSToPolysViaAD ::
+  forall n k a.
+  (KnownNat n, KnownNat k, Floating a, Real a) =>
+  (forall x. Floating x => Vec k x -> x) ->
+  Vec k (Pol.Polynomial a n) ->
+  PowerSeries n a
+liftPSToPolysViaAD f pols = Powers $ \mon ->
+  walkAlong mon table / fromIntegral (alaf Product ofoldMap factorial mon)
+  where
+    table :: Cofree (SV.Sized V.Vector n) a
+    table =
+      AD.grads
+        ( \xs ->
+            f $
+              SV.map
+                ( AP.unwrapFractional
+                    . Pol.eval (SV.map AP.WrapFractional xs)
+                    . Pol.mapCoeff (AP.WrapFractional . realToFrac)
+                )
+                pols
+        )
+        $ SV.replicate' 0
+
+walkAlong ::
+  forall n a.
+  (KnownNat n) =>
+  UVec n Word ->
+  Cofree (SV.Sized V.Vector n) a ->
+  a
+walkAlong SV.NilR (a Cof.:< SV.NilR) = a
+walkAlong (0 SV.:< (rest :: UVec m Word)) (a :< deep) =
+  withWitness
+    (lneqZero $ sing @m)
+    $ walkAlong
+      rest
+      (a Cof.:< SV.map (hoistCofree SV.tail) (SV.tail deep))
+walkAlong (n SV.:< rest) (_ :< (diffed SV.:< _)) =
+  walkAlong (n - 1 SV.:< rest) diffed

@@ -1,4 +1,6 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MagicHash #-}
@@ -12,15 +14,18 @@
 
 module Numeric.Algebra.Smooth.WeilSpec where
 
-import Algebra.Prelude.Core (IsPolynomial (terms'), SNat, withKnownNat)
+import Algebra.Prelude.Core (IsPolynomial (terms', var), Polynomial, SNat, toIdeal, withKnownNat)
+import qualified Algebra.Prelude.Core as AP
 import AlgebraicPrelude (WrapFractional (WrapFractional))
 import Control.Lens (alaf)
 import Data.Foldable as F
 import qualified Data.Map as M
 import Data.Map.Strict (Map)
+import Data.Maybe (fromJust)
 import Data.MonoTraversable
 import Data.Monoid (Product (Product))
 import Data.Proxy
+import Data.Reflection
 import Data.Semialign.Indexed
 import Data.Singletons.Prelude (sing)
 import Data.Sized.Builtin
@@ -326,3 +331,53 @@ chkWeilProduct
                   )
                   result
                   expected
+
+test_liftSmoothEquiv :: TestTree
+test_liftSmoothEquiv =
+  testGroup
+    "liftSmoothAD is equivalent to liftSmoothSeriesAD"
+    [ testGroup
+        "D1"
+        [ testProperty "unary" $ chkLiftSmoothADEquiv @D1 @1
+        , testProperty "binary" $ chkLiftSmoothADEquiv @D1 @2
+        , testProperty "ternary" $ chkLiftSmoothADEquiv @D1 @3
+        ]
+    , testGroup
+        "D2"
+        [ testProperty "unary" $ chkLiftSmoothADEquiv @D2 @1
+        , testProperty "binary" $ chkLiftSmoothADEquiv @D2 @2
+        , testProperty "ternary" $ chkLiftSmoothADEquiv @D2 @3
+        ]
+    , testGroup
+        "DOrder 4"
+        [ testProperty "unary" $ chkLiftSmoothADEquiv @(DOrder 4) @1
+        , testProperty "binary" $ chkLiftSmoothADEquiv @(DOrder 4) @2
+        , testProperty "ternary" $ chkLiftSmoothADEquiv @(DOrder 4) @3
+        ]
+    , testGroup
+        "DOrder 3 |*| DOrder 4"
+        [ testProperty "unary" $ chkLiftSmoothADEquiv @(DOrder 3 |*| DOrder 4) @1
+        , testProperty "binary" $ chkLiftSmoothADEquiv @(DOrder 3 |*| DOrder 4) @2
+        , testProperty "ternary" $ chkLiftSmoothADEquiv @(DOrder 3 |*| DOrder 4) @3
+        ]
+    , testGroup "R[x,y]/(x^3-y^2,y^3)" $
+        fromJust $
+          reifyWeil
+            (toIdeal [var 0 ^ 3 - var 1 ^ 2, var 1 ^ 3 :: Polynomial AP.Rational 2])
+            $ \(_ :: Proxy w) ->
+              [ testProperty "unary" $ chkLiftSmoothADEquiv @w @1
+              , testProperty "binary" $ chkLiftSmoothADEquiv @w @2
+              , testProperty "ternary" $ chkLiftSmoothADEquiv @w @3
+              ]
+    ]
+
+chkLiftSmoothADEquiv ::
+  forall w k n m.
+  (KnownNat n, KnownNat m, KnownNat k, Reifies w (WeilSettings n m)) =>
+  TotalExpr k ->
+  Vec k (Vec n Double) ->
+  Property
+chkLiftSmoothADEquiv (TotalExpr expr) inps =
+  let Weil finitary = liftSmoothAD @w (evalExpr expr) $ Weil <$> inps
+      Weil series = liftSmoothSeriesAD @w (evalExpr expr) $ Weil <$> inps
+   in finitary ==~ series
