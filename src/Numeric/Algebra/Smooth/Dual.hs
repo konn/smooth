@@ -21,6 +21,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoStarIsType #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
 {-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
@@ -30,36 +31,21 @@ module Numeric.Algebra.Smooth.Dual where
 import Algebra.Normed
 import qualified AlgebraicPrelude as AP
 import Control.Lens
-import Data.Bits
-import Data.Coerce
 import Data.Foldable (fold)
 import Data.List
 import qualified Data.Map as M
-import Data.Maybe
 import Data.MonoTraversable (osum)
 import Data.Monoid (Sum (..))
 import Data.Proxy
 import Data.Set (Set)
 import qualified Data.Set as Set
-import Data.Singletons.Prelude
-  ( Sing,
-    sing,
-    withSingI,
-    type (<),
-  )
+import Data.Singletons.Prelude (sing)
 import Data.Singletons.TypeLits
-import Data.Sized.Builtin (Sized)
 import qualified Data.Sized.Builtin as SV
-import Data.Tuple
-import qualified Data.Type.Natural as PN
-import Data.Type.Natural.Builtin (ToPeano, sToPeano)
 import Data.Type.Natural.Class.Arithmetic hiding (PNum (..))
 import Data.Type.Natural.Class.Order hiding (type (<=))
 import Data.Type.Ordinal.Builtin
-import Data.Vector (Vector)
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as U
-import Data.Void
 import GHC.Exts
 import GHC.Generics
 import GHC.TypeNats
@@ -68,8 +54,6 @@ import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
 import Numeric.Algebra.Smooth.Types
 import Numeric.Natural
-import Proof.Propositional
-import Unsafe.Coerce
 
 epsilon :: Num a => Dual a -> a
 epsilon = \case
@@ -103,9 +87,11 @@ data Dual a
 
 instance Fractional a => NA.RightModule (AP.WrapFractional Double) (Dual a) where
   Dual a da *. AP.WrapFractional x = Dual (a * realToFrac x) (da * realToFrac x)
+  Konst x *. AP.WrapFractional y = Konst $ x * realToFrac y
 
 instance Fractional a => NA.LeftModule (AP.WrapFractional Double) (Dual a) where
   AP.WrapFractional x .* Dual a da = Dual (realToFrac x * a) (realToFrac x * da)
+  AP.WrapFractional x .* Konst y = Konst $ realToFrac x * y
 
 instance (Show a, Num a, Eq a) => Show (Dual a) where
   showsPrec d (Konst n) = showsPrec d n
@@ -122,7 +108,7 @@ instance Floating a => SmoothRing (Dual a) where
 
 liftDual ::
   (KnownNat n, Floating a) =>
-  (forall a. Floating a => Vec n a -> a) ->
+  (forall x. Floating x => Vec n x -> x) ->
   Vec n (Dual a) ->
   Dual a
 liftDual f (ds :: Vec n (Dual a)) =
@@ -172,9 +158,9 @@ instance Num a => Num (Dual a) where
   Dual a da * Konst b = Dual (a * b) (da * b)
   Dual a da * Dual b db = Dual (a * b) (a * db + da * b)
   abs (Konst a) = Konst (abs a)
-  abs (Dual a da) = Dual (abs a) (signum a)
+  abs (Dual a da) = Dual (abs a) (da * signum a)
   signum (Konst a) = Konst $ signum a
-  signum (Dual a da) = Dual (signum a) 0
+  signum (Dual a _) = Dual (signum a) 0
 
 instance Fractional a => Fractional (Dual a) where
   fromRational = Konst . fromRational
@@ -326,10 +312,11 @@ sliced :: KnownNat n => UVec n Word -> [a] -> Vec n [a]
 sliced = loop
   where
     loop :: KnownNat k => UVec k Word -> [a] -> Vec k [a]
-    loop SV.NilR xs = SV.empty
+    loop SV.NilR _xs = SV.empty
     loop (n SV.:< ns) xs =
       let (lf, rest) = splitAt (fromIntegral n) xs
        in lf SV.:< loop ns rest
+    loop _ _ = error "cannot happen!"
 
 instance
   (KnownNat n, Fractional a) =>
@@ -385,7 +372,7 @@ liftUn ::
   Duals n a
 liftUn f (Duals xs) = case sing @n of
   Zero -> Duals $ SV.singleton $ f $ SV.head xs
-  Succ (n :: Sing k) ->
+  Succ (_ :: Sing k) ->
     let (x, dx) = halve xs
         Dual (Duals x') (Duals dx') = f $ Dual (Duals @k x) (Duals @k dx)
      in Duals $ x' SV.++ dx'
@@ -403,7 +390,7 @@ liftBin ::
   Duals n a
 liftBin f (Duals xs) (Duals ys) = case sing @n of
   Zero -> Duals $ SV.singleton $ f (SV.head xs) (SV.head ys)
-  Succ (n :: Sing k) ->
+  Succ (_ :: Sing k) ->
     let (x, dx) = halve xs
         (y, dy) = halve ys
         Dual (Duals x') (Duals dx') =
@@ -459,15 +446,15 @@ components (Duals xs) =
     Zero ->
       let c = SV.head xs
        in if c == 0 then M.empty else M.singleton SV.empty c
-    Succ (l :: Sing l) ->
+    Succ (_ :: Sing l) ->
       let (s, ds) = halve xs
        in M.mapKeys (False SV.:<) (components $ Duals s)
             `M.union` M.mapKeys (True SV.:<) (components $ Duals ds)
 {-# INLINE components #-}
 
 instance (KnownNat n, Num a, Eq a, Show a) => Show (Duals n a) where
-  showsPrec d dn =
-    let terms = M.toList $ M.mapKeys monomIndices $ components dn
+  showsPrec _ duals =
+    let terms = M.toList $ M.mapKeys monomIndices $ components duals
      in if null terms
           then showString "0"
           else
@@ -501,6 +488,7 @@ halveDs =
 instance (Normed a, Floating a) => Normed (Dual a) where
   type Norm (Dual a) = Norm a
   norm (Dual a da) = norm $ sqrt $ a ^ 2 + da ^ 2
+  norm (Konst a) = norm a
   liftNorm n = Dual (liftNorm n) 0
 
 instance (Normed a, Floating a, KnownNat n) => Normed (Duals n a) where

@@ -7,13 +7,11 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeOperators #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 
 module Numeric.Algebra.Smooth.Types (Vec, UVec, convVec) where
 
-import qualified AlgebraicPrelude as AP
 import Data.ListLike
 import Data.Sized.Builtin (Sized)
 import qualified Data.Sized.Builtin as SV

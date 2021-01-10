@@ -52,27 +52,22 @@ module Numeric.Algebra.Smooth.Weil
   )
 where
 
-import Algebra.Algorithms.Groebner (calcGroebnerBasis, isIdealMember)
 import Algebra.Algorithms.Groebner.Signature.Rules ()
-import Algebra.Algorithms.ZeroDim (radical, univPoly, vectorRep)
-import Algebra.Prelude.Core (Ordinal, SNat, ordToInt, ordToNatural)
+import Algebra.Algorithms.ZeroDim (univPoly, vectorRep)
+import Algebra.Prelude.Core (SNat, ordToNatural)
 import Algebra.Ring.Ideal
   ( Ideal,
-    mapIdeal,
     toIdeal,
   )
 import Algebra.Ring.Polynomial
-import Algebra.Ring.Polynomial.Monomial
 import Algebra.Ring.Polynomial.Quotient
-  ( gBasis',
-    modIdeal',
+  ( modIdeal',
     quotRepr,
     reifyQuotient,
     standardMonomials',
   )
 import Algebra.Scalar
 import AlgebraicPrelude
-import Control.Arrow (Arrow (first))
 import Control.DeepSeq
 import Control.Lens
   ( FoldableWithIndex (ifoldMap),
@@ -81,19 +76,16 @@ import Control.Lens
     itoList,
     re,
     (:~:) (..),
-    (<&>),
     (^.),
   )
 import Data.Coerce (coerce)
 import qualified Data.Foldable as F
 import qualified Data.HashMap.Lazy as LHM
 import qualified Data.HashMap.Strict as HM
-import qualified Data.HashSet as HS
 import qualified Data.Map as M
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
-import Data.MonoTraversable (oany, osum, otraverse)
-import Data.Monoid (Sum (Sum))
+import Data.MonoTraversable (oany, otraverse)
 import Data.Proxy (Proxy (..))
 import qualified Data.Ratio as R
 import Data.Reflection
@@ -112,10 +104,7 @@ import qualified Data.Sized.Builtin as SV
 import Data.Type.Equality ()
 import Data.Type.Ordinal.Builtin (enumOrdinal)
 import qualified Data.Vector as V
-import qualified Data.Vector.Unboxed as U
 import GHC.Exts (proxy#)
-import GHC.TypeLits (SomeNat (SomeNat))
-import GHC.TypeNats (someNatVal)
 import GHC.TypeNats as TN
 import Math.NumberTheory.Factorial.Swing.Recursion (factorial)
 import qualified Numeric.Algebra as NA
@@ -127,7 +116,6 @@ import Numeric.Algebra.Smooth.Classes
 import Numeric.Algebra.Smooth.Dual (multDiffUpTo)
 import Numeric.Algebra.Smooth.PowerSeries
   ( PowerSeries (Powers),
-    cutoff,
     cutoffMult,
     diag,
     injPoly,
@@ -155,7 +143,7 @@ Since \(\mathbb{R}[\![\mathbf{X}]\!]\) has a \(C^\infty\)-ring structure (via Ta
 In particular, each equivalence class \(d_i = X_i + I\) of variables can be regarded as generalised nilpotent infinitesimals.
 In this sense, the notion of Weil algebra can be thought as a formalisation of "real line with infinitesimals".
 -}
-newtype Weil s r = Weil_ {runWeil_ :: Vector r}
+newtype Weil s r = Weil_ (Vector r)
   deriving newtype (P.Functor, NFData)
 
 pattern Weil ::
@@ -168,6 +156,8 @@ pattern Weil v <-
   Weil_ (SV.toSized' @_ @_ @n -> Just v)
   where
     Weil v = Weil_ (SV.unsized @_ @n v)
+
+{-# COMPLETE Weil #-}
 
 deriving via
   WrapNum (Weil s r)
@@ -712,7 +702,7 @@ polyToFun ::
 polyToFun =
   coerce . liftMap (\i -> WrapFun @(Vec n r) (WrapFractional . (SV.%!! i)))
 
-newtype WrapFun a b = WrapFun {unwrapFun :: a -> b}
+newtype WrapFun a b = WrapFun (a -> b)
   deriving newtype
     ( Abelian
     , Additive
@@ -882,8 +872,8 @@ instance
                   | (lh, SV.unsized -> lCoes) <- HM.toList $ weilMonomDic weil
                   , (rh, SV.unsized -> rCoes) <- HM.toList $ weilMonomDic weil'
                   , let mon = lh SV.++ rh
-                        coes = SV.generate sing $ \on ->
-                          let (l, r) = fromIntegral (ordToNatural on) `P.divMod` n'
+                        coes = SV.generate sing $ \od ->
+                          let (l, r) = fromIntegral (ordToNatural od) `P.divMod` n'
                            in (lCoes V.! l) * (rCoes V.! r)
                   , oany (/= 0) coes
                   ]
@@ -940,7 +930,7 @@ diffUpTo' n f x =
     SomeNat (_ :: Proxy n) ->
       let a = f (injCoeWeil x + di 0) :: Weil (DOrder (n + 1)) a
        in M.mapWithKey
-            ( \n x -> fromInteger (factorial $ fromIntegral n) P.* x
+            ( \m y -> fromInteger (factorial $ fromIntegral m) P.* y
             )
             $ coerce $
               M.mapKeysMonotonic (fromIntegral . totalDegree) $

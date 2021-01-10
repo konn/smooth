@@ -15,7 +15,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE ViewPatterns #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
@@ -45,10 +44,8 @@ import Data.Monoid (Product (..))
 import Data.Semialign (alignWith)
 import qualified Data.Sequence as Seq
 import Data.Singletons.Prelude (Sing, SingI (sing))
-import qualified Data.Singletons.Prelude.Ord as Sing
 import qualified Data.Sized.Builtin as SV
 import Data.These
-import Data.Type.Equality
 import Data.Type.Natural.Class.Arithmetic
   ( ZeroOrSucc (..),
     zeroOrSucc,
@@ -60,18 +57,15 @@ import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 import GHC.Conc (par)
 import GHC.Generics (Generic)
-import GHC.TypeLits (type (+))
 import GHC.TypeNats (KnownNat)
 import qualified Numeric.AD as AD
-import qualified Numeric.AD.Jet as AD
-import Numeric.AD.Mode.Sparse (Sparse)
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
   ( SmoothRing (..),
     liftBinary,
     liftUnary,
   )
-import Numeric.Algebra.Smooth.Dual (Dual (..), multDiff)
+import Numeric.Algebra.Smooth.Dual (multDiff)
 import Numeric.Algebra.Smooth.Types (UVec, Vec, convVec)
 import Numeric.Natural (Natural)
 import Proof.Propositional (withWitness)
@@ -212,7 +206,7 @@ instance (KnownNat n, Show a) => Show (Tree n a) where
   showsPrec d (DiffArg (SV.head -> k) i) =
     showParen (d > 9) $
       showString "d^" . shows k . showString " g_" . shows (fromEnum i)
-  showsPrec d (DiffFun pows)
+  showsPrec _ (DiffFun pows)
     | oall (== 0) pows = showChar 'f'
     | otherwise =
       let ps = SV.unsized pows
@@ -241,10 +235,10 @@ instance
       showParen (d > 9) $
         let pow =
               V.imapMaybe
-                ( \i p -> do
+                ( \j p -> do
                     guard $ p /= 0
                     pure $
-                      showString "d_" . shows i
+                      showString "d_" . shows j
                         . showChar '^'
                         . shows p
                 )
@@ -252,7 +246,7 @@ instance
          in foldr1 (\a b -> a . showString " " . b) pow
               . showString " g_"
               . shows (fromEnum i)
-  showsPrec d (DiffFun pows)
+  showsPrec _ (DiffFun pows)
     | oall (== 0) pows = showChar 'f'
     | otherwise =
       let ps = SV.unsized pows
@@ -268,7 +262,7 @@ evalTree ::
   a
 evalTree (Mul l r) f vs = evalTree l f vs * evalTree r f vs
 evalTree (Add l r) f vs = evalTree l f vs + evalTree r f vs
-evalTree (DiffArg (SV.head -> k) i) f vs =
+evalTree (DiffArg (SV.head -> k) i) _ vs =
   constTerm $
     foldr ($) (vs SV.%!! i) (replicate (fromIntegral k) formalDiff)
 evalTree (DiffFun pows) f vs =
@@ -288,7 +282,7 @@ evalMTree ::
   a
 evalMTree (Mul l r) f vs = evalMTree l f vs * evalMTree r f vs
 evalMTree (Add l r) f vs = evalMTree l f vs + evalMTree r f vs
-evalMTree (DiffArg pow i) f vs =
+evalMTree (DiffArg pow i) _ vs =
   constPTerm $
     formalNDiff pow $
       vs SV.%!! i
@@ -328,7 +322,7 @@ diffMTree o (Mul l r) =
   diffMTree o l * r + l * diffMTree o r
 diffMTree o (Add l r) = diffMTree o l + diffMTree o r
 diffMTree o (DiffArg k i) = DiffArg (k & ix o +~ 1) i
-diffMTree o K {} = K 0
+diffMTree _ K {} = K 0
 diffMTree o (DiffFun pow) =
   sum
     [ DiffFun (pow & ix i +~ 1) * DiffArg (diag o) i
@@ -430,7 +424,7 @@ monomsOfDeg 0 = [SV.replicate' 0]
 monomsOfDeg n =
   case zeroOrSucc (sing @n) of
     IsZero -> []
-    IsSucc (sn :: Sing m) ->
+    IsSucc (_ :: Sing m) ->
       concat
         [ map (k SV.<|) $ monomsOfDeg @m (n - k)
         | k <- [0 .. n]
@@ -564,3 +558,4 @@ walkAlong (0 SV.:< (rest :: UVec m Word)) (a :< deep) =
       (a Cof.:< SV.map (hoistCofree SV.tail) (SV.tail deep))
 walkAlong (n SV.:< rest) (_ :< (diffed SV.:< _)) =
   walkAlong (n - 1 SV.:< rest) diffed
+walkAlong _ _ = error "could not happen!"
