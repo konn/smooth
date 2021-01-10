@@ -108,3 +108,40 @@ chkMultDiff =
 deKonst :: Num a => Dual a -> Dual a
 deKonst (Konst a) = Dual a 0
 deKonst d = d
+
+-- Counter examples for multDiff
+
+errdegs :: UVec 2 Word
+errdegs = 3 SV.:< 4 SV.:< SV.NilR
+
+errInps :: Vec 2 Double
+errInps = 3 SV.:< 18 SV.:< SV.NilR
+
+theExpr :: Expr 2
+theExpr =
+  Atan (K 0.8 :* (Arg 1 :^ 2 :* Cos (Arg 0)))
+
+interped :: Floating x => x -> x -> x
+interped x y =
+  atan (0.8 * (y ^ 2 * cos x))
+
+thef :: Floating x => Vec 2 x -> x
+thef = evalExpr theExpr
+
+thef' :: Floating x => x -> x -> x
+thef' x y = thef (x SV.:< y SV.:< SV.NilR)
+
+{-
+>>> import Numeric.AD
+>>> diffs (\y -> diffs (\x -> interped x (auto y)) 3 !! 3) 18 !! 4
+-3.2497003091202094e-6
+
+prop> chkWeilProduct (sing @4) (sing @5) (TotalExpr theExpr) 3 18
+*** Failed! Falsified (after 1 test):
+Partial Derivative: [3,4]
+-3.2497003091202306e-6 ~/= 3.6043377824171983e-3
+
+>>> multDiff (3 SV.:< 4 SV.:< SV.NilR) (SV.singleton . thef) errInps
+[3.6043377824171983e-3]
+
+-}
