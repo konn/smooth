@@ -10,7 +10,7 @@ jobs:
 
     - uses: actions/checkout@v2
     - name: Cache ~/.stack
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.stack
@@ -18,42 +18,44 @@ jobs:
         key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
-          ${{runner.os}}-master-stack-global
+          ${{runner.os}}-master-stack-global-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-stack-global-
 
     - name: Cache ~/.cabal
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.cabal
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-cabal
 
     - name: Cache ~/.ghc
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.ghc
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-ghc
 
     - name: Cache .stack-work
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: .stack-work
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-work
+          ${{runner.os}}-master-stack-work-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-${{github.ref}}-stack-work-
+          ${{runner.os}}-master-stack-work-
 
     - name: Install Dependent Libraries
       run: |
@@ -81,51 +83,52 @@ jobs:
         stack-version: '2.5.1'
 
     - name: Cache ~/.stack
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.stack
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-global
+          ${{runner.os}}-master-stack-global-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-stack-global-
 
     - name: Cache ~/.cabal
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.cabal
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-cabal
 
     - name: Cache ~/.ghc
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.ghc
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-ghc
 
     - name: Cache .stack-work
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: .stack-work
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-work
+          ${{runner.os}}-master-stack-work-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-${{github.ref}}-stack-work-
+          ${{runner.os}}-master-stack-work-
 
     - name: Install Dependent Libraries
       run: |
@@ -152,51 +155,52 @@ jobs:
         stack-version: '2.5.1'
 
     - name: Cache ~/.stack
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.stack
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-global
+          ${{runner.os}}-master-stack-global-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-stack-global-
 
     - name: Cache ~/.cabal
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.cabal
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-cabal
 
     - name: Cache ~/.ghc
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.ghc
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-ghc
 
     - name: Cache .stack-work
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: .stack-work
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-work
+          ${{runner.os}}-master-stack-work-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-${{github.ref}}-stack-work-
+          ${{runner.os}}-master-stack-work-
 
     - name: Install Dependent Libraries
       run: |
@@ -222,51 +226,52 @@ jobs:
         stack-version: '2.5.1'
 
     - name: Cache ~/.stack
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.stack
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-global
+          ${{runner.os}}-master-stack-global-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-master-stack-global-
 
     - name: Cache ~/.cabal
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.cabal
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-cabal
 
     - name: Cache ~/.ghc
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: ~/.ghc
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
         # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
         restore-keys: |
           ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
           ${{runner.os}}-master-ghc
 
     - name: Cache .stack-work
-      uses: actions/cache@v1.1.0
+      uses: actions/cache@v2
       with:
         # A directory to store and save the cache
         path: .stack-work
         # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ hashFiles('**/*.hs') }}
+        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
         restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-work
+          ${{runner.os}}-master-stack-work-${{ hashFiles('stack.yaml.lock') }}
+          ${{runner.os}}-${{github.ref}}-stack-work-
+          ${{runner.os}}-master-stack-work-
 
     - name: Run Benchmarks
       run: |
