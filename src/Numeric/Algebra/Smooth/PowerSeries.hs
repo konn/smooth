@@ -8,6 +8,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE QuantifiedConstraints #-}
@@ -38,9 +39,11 @@ import Data.Coerce (coerce)
 import Data.ListLike (ListLike)
 import Data.MonoTraversable
 import Data.Monoid (Product (..))
+import Data.Semialign (alignWith)
 import qualified Data.Sequence as Seq
 import Data.Singletons.Prelude (Sing, SingI (sing))
 import qualified Data.Sized.Builtin as SV
+import Data.These
 import Data.Type.Natural.Class.Arithmetic
   ( ZeroOrSucc (..),
     zeroOrSucc,
@@ -58,13 +61,13 @@ import Numeric.Algebra.Smooth.Classes
     liftBinary,
     liftUnary,
   )
-import Numeric.Algebra.Smooth.Dual (multDiff)
+import Numeric.Algebra.Smooth.Dual (Dual (..), multDiff)
 import Numeric.Algebra.Smooth.Types (UVec, Vec, convVec)
 import Numeric.Natural (Natural)
 
 -- | Unary formal power series, or Tower.
 newtype Series k = Series {runSeries :: [k]}
-  deriving (Eq, Generic)
+  deriving (Generic)
   deriving
     ( NA.Additive
     , NA.Monoidal
@@ -331,9 +334,15 @@ injectCoePS a = Powers $ \x ->
     else 0
 
 instance (Floating a, Eq a) => Num (Series a) where
-  fromInteger = Series . (: repeat 0) . fromInteger
-  (+) = coerce $ zipWith ((+) @a)
-  (-) = coerce $ zipWith ((+) @a)
+  fromInteger = Series . (: []) . fromInteger
+  (+) = coerce $
+    alignWith @[] @a $ \case
+      These a b -> a + b
+      This a -> a
+      That a -> a
+  (-) = coerce $
+    alignWith @[] @a $
+      \case These a b -> a - b; This a -> a; That a -> negate a
   (*) = coerce $ convolve @a
   negate = coerce $ map $ negate @a
   abs = liftSmooth (abs . SV.head) . SV.singleton
@@ -382,6 +391,8 @@ instance (Show a, Num a, Eq a) => Show (Series a) where
 cutoffUn :: forall a. Int -> Series a -> Series a
 cutoffUn = coerce . take @a
 
+-- TODO: Recursive representation based on complete binary tree
+-- or something similar to Sparse from @ad@.
 newtype PowerSeries n k = Powers {getCoeff :: UVec n Word -> k}
   deriving (Functor)
   deriving
