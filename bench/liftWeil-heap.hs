@@ -28,10 +28,22 @@ import Numeric.Algebra.Smooth.Weil
     reifyWeil,
     type (|*|),
   )
-import Weigh (Weigh, func, mainWith, wgroup)
+import System.Directory (createDirectoryIfMissing)
+import System.FilePath ((</>))
+import Weigh (Weigh, func, reportGroup, weighResults, wgroup)
+
+resultDir :: FilePath
+resultDir = "bench-results"
+
+benchName :: FilePath
+benchName = "liftWeil-heap.txt"
 
 main :: IO ()
-main = mainWith theBench
+main = do
+  (results, config) <- weighResults theBench
+  let fmt = reportGroup config "liftSmooth Heap Profile" results
+  createDirectoryIfMissing True resultDir
+  writeFile (resultDir </> benchName) fmt
 
 theBench :: Weigh ()
 theBench = do
