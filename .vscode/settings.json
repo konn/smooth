@@ -3,5 +3,8 @@
   "editor.defaultFormatter": "haskell.haskell",
   "editor.formatOnSave": true,
   "haskell.formattingProvider": "fourmolu",
-  "editor.tabSize": 2
+  "editor.tabSize": 2,
+  "github-actions.workflows.pinned.workflows": [
+    ".github/workflows/haskell.yml"
+  ]
 }
