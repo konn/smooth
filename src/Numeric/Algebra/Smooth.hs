@@ -21,7 +21,7 @@ import Numeric.Algebra.Smooth.Classes
 import Numeric.Algebra.Smooth.Dual
 
 diff1 ::
-  Floating b =>
+  (Real b, Floating b) =>
   (forall a. Floating a => a -> a) ->
   b ->
   b

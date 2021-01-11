@@ -69,6 +69,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - ad
     - smooth
     - simple-reflect
     - algebra

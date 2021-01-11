@@ -26,6 +26,8 @@
 
 module Numeric.Algebra.Smooth.Weil
   ( Weil (Weil),
+    RealWeil (..),
+    diffUpTo,
     weilToVector,
     WeilSettings,
     type (|*|),
@@ -46,7 +48,6 @@ module Numeric.Algebra.Smooth.Weil
     diffUpTo',
 
     -- * Various lifting functions
-    liftSmoothAD,
     liftSmoothSeries,
     liftSmoothSeriesAD,
   )
@@ -70,9 +71,7 @@ import Algebra.Scalar
 import AlgebraicPrelude
 import Control.DeepSeq
 import Control.Lens
-  ( FoldableWithIndex (ifoldMap),
-    alaf,
-    ifoldMapBy,
+  ( ifoldMapBy,
     itoList,
     re,
     (:~:) (..),
@@ -92,7 +91,6 @@ import Data.Reflection
   ( Reifies (..),
     reify,
   )
-import Data.Semigroup (Product (Product))
 import Data.Singletons.Decide (decideEquality)
 import Data.Singletons.Prelude (sing)
 import Data.Singletons.TypeLits (withKnownNat)
@@ -113,7 +111,6 @@ import Numeric.Algebra.Smooth.Classes
     liftBinary,
     liftUnary,
   )
-import Numeric.Algebra.Smooth.Dual (multDiffUpTo)
 import Numeric.Algebra.Smooth.PowerSeries
   ( PowerSeries (Powers),
     cutoffMult,
@@ -144,7 +141,7 @@ In particular, each equivalence class \(d_i = X_i + I\) of variables can be rega
 In this sense, the notion of Weil algebra can be thought as a formalisation of "real line with infinitesimals".
 -}
 newtype Weil s r = Weil_ (Vector r)
-  deriving newtype (P.Functor, NFData)
+  deriving newtype (P.Functor, NFData, Eq)
 
 pattern Weil ::
   forall s n m r.
@@ -393,53 +390,6 @@ liftSmoothSeriesAD f (vs :: Vec k (Weil s r)) =
           )
           vs
    in toWeil $ liftPSToPolysViaAD f vs'
-
-liftSmoothAD ::
-  forall s k r n m.
-  ( Reifies s (WeilSettings n m)
-  , KnownNat k
-  , Real r
-  , Floating r
-  , Eq r
-  , KnownNat n
-  , KnownNat m
-  ) =>
-  (forall x. (Floating x) => Vec k x -> x) ->
-  Vec k (Weil s r) ->
-  Weil s r
-liftSmoothAD f =
-  case reflect $ Proxy @s of
-    WeilSettings {..} ->
-      \ws ->
-        let coes =
-              multDiffUpTo @m @1
-                nonZeroVarMaxPowers
-                ( \(inp :: Vec m x) ->
-                    SV.singleton $
-                      f $
-                        SV.map (($ inp) . weilToPolyFun . fmap realToFrac) ws
-                )
-                (SV.replicate' 0.0)
-         in runAdd $
-              ifoldMap
-                ( \monom c ->
-                    let fac =
-                          fromInteger $
-                            alaf Product foldMap (factorial . fromIntegral) monom
-                     in Add $
-                          maybe
-                            0
-                            ( Weil
-                                . SV.map
-                                  ( \x ->
-                                      if x == 0
-                                        then 0
-                                        else ((SV.head c P./ fac) P.*) . unwrapFractional . fromRational' @r $ x
-                                  )
-                            )
-                            (HM.lookup (convVec monom) weilMonomDic)
-                )
-                coes
 
 instance
   ( KnownNat m
@@ -936,3 +886,76 @@ diffUpTo' n f x =
               M.mapKeysMonotonic (fromIntegral . totalDegree) $
                 terms $
                   weilToPoly a
+
+realPart ::
+  forall w a n m.
+  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Floating a, Real a) =>
+  Weil w a ->
+  a
+realPart (Weil_ vec)
+  | V.null vec = 0
+  | otherwise = V.head vec
+
+newtype RealWeil w a = RealWeil {runRealWeil :: Weil w a}
+
+deriving newtype instance
+  ( KnownNat n
+  , KnownNat m
+  , Reifies w (WeilSettings n m)
+  , Floating a
+  , Real a
+  ) =>
+  Num (RealWeil w a)
+
+deriving newtype instance
+  ( KnownNat n
+  , KnownNat m
+  , Reifies w (WeilSettings n m)
+  , Floating a
+  , Real a
+  ) =>
+  Fractional (RealWeil w a)
+
+deriving newtype instance
+  ( KnownNat n
+  , KnownNat m
+  , Reifies w (WeilSettings n m)
+  , Floating a
+  , Real a
+  ) =>
+  Floating (RealWeil w a)
+
+instance
+  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Eq a) =>
+  Eq (RealWeil w a)
+  where
+  RealWeil (Weil_ as) == RealWeil (Weil_ bs) = V.head as == V.head bs
+
+instance
+  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Ord a) =>
+  Ord (RealWeil w a)
+  where
+  RealWeil (Weil_ as) `compare` RealWeil (Weil_ bs) = compare (V.head as) (V.head bs)
+
+instance
+  ( KnownNat n
+  , KnownNat m
+  , Reifies w (WeilSettings n m)
+  , Floating a
+  , Real a
+  ) =>
+  Real (RealWeil w a)
+  where
+  toRational = toRational . realPart . runRealWeil
+
+diffUpTo ::
+  forall a.
+  (Floating a, Real a) =>
+  Natural ->
+  (forall x. Floating x => x -> x) ->
+  a ->
+  M.Map Natural a
+diffUpTo n f a = case someNatVal n of
+  SomeNat (_ :: Proxy n) ->
+    let Weil vec = f (injCoeWeil a + di 0) :: Weil (DOrder n) a
+     in M.fromList $ zip [0 ..] $ SV.toList vec

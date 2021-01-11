@@ -42,7 +42,7 @@ import qualified Numeric.AD as AD
 import Numeric.Algebra.Smooth
 import Numeric.Algebra.Smooth.Classes ()
 import Numeric.Algebra.Smooth.Dual ()
-import Numeric.Algebra.Smooth.PowerSeries (factorial)
+import Numeric.Algebra.Smooth.PowerSeries (factorial, walkAlong)
 import Numeric.Algebra.Smooth.Types
 import Numeric.Algebra.Smooth.Weil
 import Test.QuickCheck
@@ -93,46 +93,6 @@ prop_WeilD1_coincides_with_Dual_on_complex =
             weilAns = Dual (l %!! 0) (l %!! 1)
          in dualAns ==~ weilAns
 
-prop_Weil_D1xD1_coincides_with_Duals_2 :: Property
-prop_Weil_D1xD1_coincides_with_Duals_2 =
-  forAll (resize 5 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-    forAll (arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
-      forAll (arbitrary @(Vec n (Duals 2 Double))) $ \ds ->
-        let f :: Floating x => Vec n x -> x
-            f = evalExpr expr
-            l =
-              weilToVector $
-                liftSmooth
-                  @(Weil (D1 |*| D1) Double)
-                  f
-                  (SV.map (Weil . runDuals) ds)
-            dualsAns =
-              liftSmooth @(Duals 2 Double)
-                f
-                ds
-            weilAns = Duals l
-         in dualsAns ==~ weilAns
-
-prop_Weil_D1xD1xD1_coincides_with_Duals_3 :: Property
-prop_Weil_D1xD1xD1_coincides_with_Duals_3 =
-  forAll (resize 3 arbitrary) $ \(SomeNat (_ :: Proxy n)) ->
-    forAll (resize 5 $ arbitrary @(TotalExpr n)) $ \(TotalExpr expr) ->
-      forAll (arbitrary @(Vec n (Duals 3 Double))) $ \ds ->
-        let f :: Floating x => Vec n x -> x
-            f = evalExpr expr
-            l =
-              weilToVector $
-                liftSmooth
-                  @(Weil (D1 |*| D1 |*| D1) Double)
-                  f
-                  (SV.map (Weil . runDuals) ds)
-            dualsAns =
-              liftSmooth @(Duals 3 Double)
-                f
-                ds
-            weilAns = Duals l
-         in dualsAns ==~ weilAns
-
 prop_Weil_Cubic_computes_upto_2nd_derivative_for_sin :: Property
 prop_Weil_Cubic_computes_upto_2nd_derivative_for_sin =
   forAll (arbitrary @Double) $ \a ->
@@ -150,7 +110,10 @@ prop_Weil_Cubic_computes_upto_2nd_derivative :: Property
 prop_Weil_Cubic_computes_upto_2nd_derivative =
   forAll (arbitrary @(TotalExpr 1)) $ \(TotalExpr expr) ->
     forAll (arbitrary @Double) $ \a ->
-      let [fa, f'a, f''adiv2] =
+      let f :: Floating x => x -> x
+          f x = evalExpr expr (SV.singleton @V.Vector x)
+          faAns : f'aAns : f''aAns : _ = AD.diffs0 f a
+          [fa, f'a, f''adiv2] =
             F.toList $
               weilToVector $
                 liftSmooth @(Weil Cubic Double)
@@ -158,9 +121,9 @@ prop_Weil_Cubic_computes_upto_2nd_derivative =
                   ( SV.singleton $ Weil $ a :< 1 :< 0 :< NilR ::
                       Vec 1 (Weil Cubic Double)
                   )
-       in fa ==~ evalExpr expr (SV.singleton a :: Vec 1 Double)
-            .&&. f'a ==~ diff1 (evalExpr expr . SV.singleton @V.Vector) a
-            .&&. f''adiv2 ==~ diff1 (diff1 (evalExpr expr . SV.singleton @V.Vector)) a / 2
+       in fa ==~ faAns
+            .&&. f'a ==~ f'aAns
+            .&&. f''adiv2 ==~ (f''aAns / 2)
 
 data SmoothFunc where
   SmoothFunc :: (forall x. Floating x => x -> x) -> SmoothFunc
@@ -204,14 +167,14 @@ prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative =
               .&&. conjoin
                 (zipWith (==~) (F.toList ds) (F.toList ans))
 
-prop_diffUpTo'_equivalent_to_diffUpTo :: Property
-prop_diffUpTo'_equivalent_to_diffUpTo =
+prop_diffUpTo'_equivalent_to_diffs :: Property
+prop_diffUpTo'_equivalent_to_diffs =
   forAll (resize 5 arbitrary) $ \n ->
     forAll (arbitrary @(TotalExpr 1)) $ \(TotalExpr expr) ->
       forAll (arbitrary @Double) $ \a ->
         let f :: Floating x => x -> x
             f = evalExpr expr . SV.singleton @V.Vector
-            teacher = M.filter (/= 0) (diffUpTo n f a)
+            teacher = M.filter (/= 0) $ M.fromList $ zip [0 .. n] $ AD.diffs f a
             tested = M.filter (/= 0) (diffUpTo' n f a)
          in conjoin $
               F.toList $
@@ -248,16 +211,17 @@ test_WeilProduct =
     , testProperty "D4 |*| D5" $ chkWeilProduct (sing @4) (sing @5)
     , testProperty "D4 |*| D5 (regression)" $ chkWeilProduct (sing @4) (sing @5) (TotalExpr theExpr)
     , testProperty "D2 |*| D3 |*| D4" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
-        let f :: forall x. Floating x => Vec 3 x -> Vec 1 x
-            f = SV.singleton . evalExpr expr
+        let f :: forall x. Floating x => Vec 3 x -> x
+            f = evalExpr expr
+            table = AD.grads f (x :< y :< z :< NilR)
             expected :: Map (UVec 3 Int) Double
             expected =
-              M.mapKeysMonotonic (SV.map fromIntegral . convVec) $
-                M.mapMaybe
-                  ( \(d :< NilR) ->
-                      if d == 0 then Nothing else Just d
-                  )
-                  $ multDiffUpTo (1 :< 2 :< 3 :< NilR) f (x :< y :< z :< NilR)
+              M.fromList
+                [ (SV.map fromIntegral deg, walkAlong deg table)
+                | deg <-
+                    otraverse (enumFromTo 0) $
+                      SV.unsafeFromList' @3 [1, 2, 3]
+                ]
             result =
               M.mapMaybe
                 ( \(WrapFractional d) ->
@@ -267,7 +231,7 @@ test_WeilProduct =
                   weilToPoly $
                     liftSmooth
                       @(Weil (DOrder 2 |*| DOrder 3 |*| DOrder 4) Double)
-                      (SV.head . f)
+                      f
                       (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< injCoeWeil z + di 2 :< NilR)
          in conjoin $
               toList $
@@ -346,53 +310,83 @@ chkWeilProduct
 test_liftSmoothEquiv :: TestTree
 test_liftSmoothEquiv =
   testGroup
-    "liftSmoothAD is equivalent to liftSmoothSeriesAD"
+    "liftSmoothSeries is equivalent to liftSmoothSeriesAD"
     [ testGroup
         "D1"
-        [ testProperty "unary" $ chkLiftSmoothADEquiv @D1 @1
-        , testProperty "binary" $ chkLiftSmoothADEquiv @D1 @2
-        , testProperty "ternary" $ chkLiftSmoothADEquiv @D1 @3
+        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @D1 @1
+        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @D1 @2
+        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @D1 @3
         ]
     , testGroup
         "D2"
-        [ testProperty "unary" $ chkLiftSmoothADEquiv @D2 @1
-        , testProperty "binary" $ chkLiftSmoothADEquiv @D2 @2
-        , testProperty "ternary" $ chkLiftSmoothADEquiv @D2 @3
+        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @D2 @1
+        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @D2 @2
+        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @D2 @3
         ]
     , testGroup
         "DOrder 4"
-        [ testProperty "unary" $ chkLiftSmoothADEquiv @(DOrder 4) @1
-        , testProperty "binary" $ chkLiftSmoothADEquiv @(DOrder 4) @2
-        , testProperty "ternary" $ chkLiftSmoothADEquiv @(DOrder 4) @3
+        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @(DOrder 4) @1
+        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @(DOrder 4) @2
+        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @(DOrder 4) @3
         ]
     , testGroup
         "DOrder 3 |*| DOrder 4"
-        [ testProperty "unary" $ chkLiftSmoothADEquiv @(DOrder 3 |*| DOrder 4) @1
-        , testProperty "binary" $ chkLiftSmoothADEquiv @(DOrder 3 |*| DOrder 4) @2
-        , testProperty "ternary" $ chkLiftSmoothADEquiv @(DOrder 3 |*| DOrder 4) @3
+        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @(DOrder 3 |*| DOrder 4) @1
+        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @(DOrder 3 |*| DOrder 4) @2
+        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @(DOrder 3 |*| DOrder 4) @3
         ]
     , testGroup "R[x,y]/(x^3-y^2,y^3)" $
         fromJust $
           reifyWeil
             (toIdeal [var 0 ^ 3 - var 1 ^ 2, var 1 ^ 3 :: Polynomial AP.Rational 2])
             $ \(_ :: Proxy w) ->
-              [ testProperty "unary" $ chkLiftSmoothADEquiv @w @1
-              , testProperty "binary" $ chkLiftSmoothADEquiv @w @2
-              , testProperty "ternary" $ chkLiftSmoothADEquiv @w @3
+              [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @w @1
+              , testProperty "binary" $ chkLiftSmoothSeriesEquiv @w @2
               ]
     ]
 
-chkLiftSmoothADEquiv ::
+chkLiftSmoothSeriesEquiv ::
   forall w k n m.
   (KnownNat n, KnownNat m, KnownNat k, Reifies w (WeilSettings n m)) =>
   TotalExpr k ->
   Vec k (Vec n Double) ->
   Property
-chkLiftSmoothADEquiv (TotalExpr expr) inps =
-  let Weil finitary = liftSmoothAD @w (evalExpr expr) $ Weil <$> inps
+chkLiftSmoothSeriesEquiv (TotalExpr expr) inps =
+  let Weil finitary = liftSmoothSeries @w (evalExpr expr) $ Weil <$> inps
       Weil series = liftSmoothSeriesAD @w (evalExpr expr) $ Weil <$> inps
    in finitary ==~ series
 
 theExpr :: Expr 2
 theExpr =
   Atan (K 0.8 :* (Arg 1 :^ 2 :* Cos (Arg 0)))
+
+test_diffUpTo :: TestTree
+test_diffUpTo =
+  testGroup
+    "diffUpTo behaves similarly to ad package's diffs"
+    [ testProperty
+        "randomised"
+        $ forAll (resize 5 arbitrary) chkDiffUpTo
+    , testProperty "regression (atan)" $
+        chkDiffUpTo 9 $
+          TotalExpr $ Atan (Arg 0)
+    ]
+
+chkDiffUpTo :: AP.Natural -> TotalExpr 1 -> Double -> Property
+chkDiffUpTo n (TotalExpr expr) x =
+  tabulate "degree" [show n] $
+    let f :: Floating x => x -> x
+        f = evalExpr expr . SV.singleton @V.Vector
+        dual = diffUpTo (fromIntegral n) f (x :: Double)
+        ad = M.fromAscList $ zip [0 ..] $ take (fromIntegral n + 1) $ AD.diffs f x
+     in conjoin $
+          F.toList $
+            ialignWith
+              ( \deg ->
+                  counterexample (show deg ++ "th derivative") . \case
+                    These l r -> l ==~ r
+                    That r -> 0 ==~ r
+                    This l -> l ==~ 0
+              )
+              dual
+              ad

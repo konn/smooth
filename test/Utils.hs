@@ -17,6 +17,7 @@ module Utils where
 
 import Data.ListLike (ListLike)
 import Data.MonoTraversable
+import Data.Reflection (Reifies)
 import Data.Singletons.Prelude (sing)
 import Data.Sized.Builtin (Sized)
 import qualified Data.Sized.Builtin as SV
@@ -28,6 +29,7 @@ import GHC.TypeNats
 import Generic.Random hiding ((:+))
 import qualified Generic.Random as GR
 import Numeric.Algebra.Smooth.Dual
+import Numeric.Algebra.Smooth.Weil
 import Numeric.Natural
 import Test.QuickCheck
 import Test.QuickCheck.Instances ()
@@ -178,18 +180,17 @@ instance ApproxEq Double where
       abs (l - r) / max (abs l) (abs r) < fromRational err
 
 instance
-  (ApproxEq a, RealFloat a) =>
-  ApproxEq (Dual a)
+  ( ApproxEq a
+  , Real a
+  , Floating a
+  , Reifies w (WeilSettings n m)
+  , KnownNat n
+  , KnownNat m
+  ) =>
+  ApproxEq (Weil w a)
   where
-  approxEqWith err (Konst a) (Dual b db) =
-    approxEqWith err a b
-      && (approxEqWith err db 0 || isIndefinite a && isIndefinite b)
-  approxEqWith err (Dual a da) (Konst b) =
-    approxEqWith err a b
-      && (approxEqWith err da 0 || isIndefinite a && isIndefinite b)
-  approxEqWith err (Konst a) (Konst b) = approxEqWith err a b
-  approxEqWith err (Dual l dl) (Dual r dr) =
-    approxEqWith err l r && approxEqWith err dl dr
+  approxEqWith err (Weil as) (Weil bs) =
+    oand $ SV.zipWithSame (approxEqWith err) as bs
 
 (==~) :: (ApproxEq a, Show a) => a -> a -> Property
 l ==~ r =
@@ -203,10 +204,6 @@ instance Arbitrary SomeNat where
     someNatVal <$> elements [1 .. fromIntegral (i + 1)]
   shrink (SomeNat p) =
     map someNatVal $ shrink $ natVal p
-
-instance Arbitrary a => Arbitrary (Dual a) where
-  arbitrary = genericArbitrary uniform
-  shrink = genericShrink
 
 isIndefinite :: RealFloat a => a -> Bool
 isIndefinite v = isNaN v || isInfinite v
@@ -226,19 +223,22 @@ instance
   where
   approxEqWith err = fmap oand . SV.zipWith (approxEqWith err)
 
-instance (ApproxEq r, KnownNat n) => ApproxEq (Duals n r) where
-  approxEqWith err (Duals ns) (Duals ms) =
-    approxEqWith err ns ms
-
-instance (KnownNat n, Arbitrary r) => Arbitrary (Duals n r) where
-  arbitrary = Duals <$> arbitrary
-
 dualToTup ::
   Num a => Dual a -> (a, a)
 dualToTup (Dual a da) = (a, da)
-dualToTup (Konst a) = (a, 0)
 
 (!?) :: Num a => [a] -> Word -> a
 [] !? _ = 0
 (x : _) !? 0 = x
 (_ : xs) !? n = xs !? (n - 1)
+
+instance
+  ( KnownNat n
+  , KnownNat m
+  , Arbitrary a
+  , Reifies w (WeilSettings n m)
+  ) =>
+  Arbitrary (Weil w a)
+  where
+  arbitrary = Weil <$> arbitrary
+  shrink (Weil as) = Weil <$> (mapM shrink as)

@@ -65,7 +65,6 @@ import Numeric.Algebra.Smooth.Classes
     liftBinary,
     liftUnary,
   )
-import Numeric.Algebra.Smooth.Dual (multDiff)
 import Numeric.Algebra.Smooth.Types (UVec, Vec, convVec)
 import Numeric.Natural (Natural)
 import Proof.Propositional (withWitness)
@@ -266,8 +265,8 @@ evalTree (DiffArg (SV.head -> k) i) _ vs =
   constTerm $
     foldr ($) (vs SV.%!! i) (replicate (fromIntegral k) formalDiff)
 evalTree (DiffFun pows) f vs =
-  SV.head $
-    multDiff pows (SV.singleton . f) $
+  walkAlong pows $
+    AD.grads f $
       SV.map constTerm vs
 evalTree (K a) _ _ = a
 
@@ -287,8 +286,8 @@ evalMTree (DiffArg pow i) _ vs =
     formalNDiff pow $
       vs SV.%!! i
 evalMTree (DiffFun pows) f vs =
-  SV.head $
-    multDiff pows (SV.singleton . f) $
+  walkAlong pows $
+    AD.grads f $
       SV.map constPTerm vs
 evalMTree (K a) _ _ = a
 

@@ -6,6 +6,7 @@
 {-# LANGUAGE OverloadedLabels #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
@@ -17,11 +18,14 @@ import Algebra.Prelude.Core as AP hiding ((*), (+), (-), (/), (^))
 import Algebra.Ring.Polynomial.Class (PrettyCoeff)
 import Algebra.Ring.Polynomial.Univariate
 import AlgebraicPrelude (WrapNum (..))
-import Data.Sized.Builtin hiding (fmap)
+import qualified Data.Sized as SV
+import Data.Sized.Builtin hiding (fmap, (!!))
 import Numeric.Algebra.Smooth
+import Numeric.Algebra.Smooth.Types (UVec, Vec)
 import Numeric.Algebra.Smooth.Weil
 import Symbolic
 import Prelude ((*), (+), (-), (/), (^))
+import qualified Prelude as P
 
 -- * 高階微分の例
 
@@ -136,3 +140,20 @@ red = toIdeal [x ^ 2 - y, y ^ 2]
 
 main :: IO ()
 main = return ()
+
+errdegs :: UVec 2 Word
+errdegs = 3 :< 4 :< NilR
+
+errInps :: Vec 2 Double
+errInps = 3 :< 18 :< NilR
+
+interped :: Floating x => x -> x -> x
+interped x y =
+  atan (0.8 * (y ^ 2 * cos x))
+
+thef :: Floating x => Vec 2 x -> x
+thef = \(x :< y :< NilR) -> interped x y
+
+{-
+>>> diffUpTo 9 atan x
+-}
