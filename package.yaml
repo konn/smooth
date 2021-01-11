@@ -118,6 +118,7 @@ benchmarks:
     - -O2
 
     dependencies:
+    - ad
     - smooth
     - gauge
   liftWeil-speed:

@@ -47,19 +47,19 @@ benchFor title =
         lab
         [ bgroup
             "identity"
-            [ bench "liftSmoothAD" $ nf (liftSmoothAD SV.head) inp
+            [ bench "liftSmoothSeries" $ nf (liftSmoothSeries SV.head) inp
             , bench "liftSmoothSerisAD" $ nf (liftSmoothSeriesAD SV.head) inp
             ]
         , bgroup
             "exp x"
-            [ bench "liftSmoothAD" $ nf (liftSmoothAD (exp . SV.head)) inp
+            [ bench "liftSmoothSeries" $ nf (liftSmoothSeries (exp . SV.head)) inp
             , bench "liftSmoothSerisAD" $ nf (liftSmoothSeriesAD (exp . SV.head)) inp
             ]
         , let f :: forall x. Floating x => x -> x
               f = \x -> sin x * exp (x ^ 2 + x)
            in bgroup
                 "sin x * exp (x^2 + x)"
-                [ bench "liftSmoothAD" $ nf (liftSmoothAD (f . SV.head)) inp
+                [ bench "liftSmoothSeries" $ nf (liftSmoothSeries (f . SV.head)) inp
                 , bench "liftSmoothSerisAD" $ nf (liftSmoothSeriesAD (f . SV.head)) inp
                 ]
         , env (evaluate $ SV.replicate' $ SV.head inp) $ \inp3 ->
@@ -67,9 +67,9 @@ benchFor title =
                 f = \(x SV.:< y SV.:< z SV.:< SV.NilR) -> sin x * exp (y ^ 2 + z)
              in bgroup
                   "sin x * exp (y^2 + z)"
-                  [ bench "liftSmoothAD" $
+                  [ bench "liftSmoothSeries" $
                       nf
-                        (liftSmoothAD f)
+                        (liftSmoothSeries f)
                         inp3
                   , bench "liftSmoothSerisAD" $
                       nf

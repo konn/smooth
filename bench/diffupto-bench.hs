@@ -1,7 +1,9 @@
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
 module Main where
 
 import Gauge
-import qualified Numeric.Algebra.Smooth.Dual as Duals
+import qualified Numeric.AD as AD
 import qualified Numeric.Algebra.Smooth.Weil as Dn
 
 main :: IO ()
@@ -11,8 +13,8 @@ main =
         "identity"
         [ bgroup
           (show n)
-          [ bench "Duals" $ nf (Duals.diffUpTo n id) (0.0 :: Double)
-          , bench "Dn" $ nf (Dn.diffUpTo' n id) (0.0 :: Double)
+          [ bench "AD" $ nf (take (n + 1) . AD.diffs id) (0.0 :: Double)
+          , bench "Dn" $ nf (Dn.diffUpTo' (fromIntegral n) id) (0.0 :: Double)
           ]
         | n <- [0 .. 10]
         ]
@@ -20,18 +22,20 @@ main =
         "exp x"
         [ bgroup
           (show n)
-          [ bench "Duals" $ nf (Duals.diffUpTo n exp) (0.0 :: Double)
-          , bench "Dn" $ nf (Dn.diffUpTo' n exp) (0.0 :: Double)
+          [ bench "AD" $ nf (take (n + 1) . AD.diffs exp) (0.0 :: Double)
+          , bench "Dn" $ nf (Dn.diffUpTo' (fromIntegral n) exp) (0.0 :: Double)
           ]
         | n <- [0 .. 10]
         ]
     , bgroup
         "sin x * exp (x^2 + x)"
-        [ bgroup
-          (show n)
-          [ bench "Duals" $ nf (Duals.diffUpTo n (\x -> sin x * exp (x ^ 2 + x))) (0.0 :: Double)
-          , bench "Dn" $ nf (Dn.diffUpTo' n (\x -> sin x * exp (x ^ 2 + x))) (0.0 :: Double)
-          ]
+        [ let f :: Floating x => x -> x
+              f x = sin x * exp (x ^ 2 + x)
+           in bgroup
+                (show n)
+                [ bench "AD" $ nf (take (n + 1) . AD.diffs f) (0.0 :: Double)
+                , bench "Dn" $ nf (Dn.diffUpTo' (fromIntegral n) f) (0.0 :: Double)
+                ]
         | n <- [0 .. 10]
         ]
     ]

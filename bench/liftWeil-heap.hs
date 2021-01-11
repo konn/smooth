@@ -23,7 +23,7 @@ import Numeric.Algebra.Smooth.Weil
   ( DOrder,
     Weil (Weil),
     WeilSettings,
-    liftSmoothAD,
+    liftSmoothSeries,
     liftSmoothSeriesAD,
     reifyWeil,
     type (|*|),
@@ -67,22 +67,22 @@ benchFor title = wgroup title $
     let !inp = force $ SV.singleton (Weil @w inp0)
     wgroup lab $ do
       wgroup "identity" $ do
-        func "liftSmoothAD" (liftSmoothAD SV.head) inp
+        func "liftSmoothSeries" (liftSmoothSeries SV.head) inp
         func "liftSmoothSerisAD" (liftSmoothSeriesAD SV.head) inp
       wgroup "exp x" $ do
-        func "liftSmoothAD" (liftSmoothAD (exp . SV.head)) inp
+        func "liftSmoothSeries" (liftSmoothSeries (exp . SV.head)) inp
         func "liftSmoothSerisAD" (liftSmoothSeriesAD (exp . SV.head)) inp
       let f :: forall x. Floating x => x -> x
           f = \x -> sin x * exp (x ^ 2 + x)
       wgroup "sin x * exp (x^2 + x)" $ do
-        func "liftSmoothAD" (liftSmoothAD (f . SV.head)) inp
+        func "liftSmoothSeries" (liftSmoothSeries (f . SV.head)) inp
         func "liftSmoothSerisAD" (liftSmoothSeriesAD (f . SV.head)) inp
 
       let !inp3 = force $ SV.replicate' $ SV.head inp
           g :: forall x. Floating x => SV.Sized V.Vector 3 x -> x
           g = \(x SV.:< y SV.:< z SV.:< SV.NilR) -> sin x * exp (y ^ 2 + z)
       wgroup "sin x * exp (y^2 + z)" $ do
-        func "liftSmoothAD" (liftSmoothAD g) inp3
+        func "liftSmoothSeries" (liftSmoothSeries g) inp3
         func "liftSmoothSerisAD" (liftSmoothSeriesAD g) inp3
   where
     inputs :: [(String, SV.Sized V.Vector n Double)]
