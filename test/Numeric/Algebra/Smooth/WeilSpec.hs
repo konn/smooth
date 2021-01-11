@@ -341,7 +341,8 @@ test_liftSmoothEquiv =
             (toIdeal [var 0 ^ 3 - var 1 ^ 2, var 1 ^ 3 :: Polynomial AP.Rational 2])
             $ \(_ :: Proxy w) ->
               [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @w @1
-              , testProperty "binary" $ chkLiftSmoothSeriesEquiv @w @2
+              , testProperty "binary" $
+                  forAll (resize 3 arbitrary) $ chkLiftSmoothSeriesEquiv @w @2
               ]
     ]
 
