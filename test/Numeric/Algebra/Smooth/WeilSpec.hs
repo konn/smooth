@@ -167,15 +167,15 @@ prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative =
               .&&. conjoin
                 (zipWith (==~) (F.toList ds) (F.toList ans))
 
-prop_diffUpTo'_equivalent_to_diffs :: Property
-prop_diffUpTo'_equivalent_to_diffs =
+prop_diffUpTo_equivalent_to_diffs :: Property
+prop_diffUpTo_equivalent_to_diffs =
   forAll (resize 5 arbitrary) $ \n ->
     forAll (arbitrary @(TotalExpr 1)) $ \(TotalExpr expr) ->
       forAll (arbitrary @Double) $ \a ->
         let f :: Floating x => x -> x
             f = evalExpr expr . SV.singleton @V.Vector
             teacher = M.filter (/= 0) $ M.fromList $ zip [0 .. n] $ AD.diffs f a
-            tested = M.filter (/= 0) (diffUpTo' n f a)
+            tested = M.filter (/= 0) (diffUpTo n f a)
          in conjoin $
               F.toList $
                 ialignWith

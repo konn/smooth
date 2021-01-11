@@ -45,7 +45,6 @@ module Numeric.Algebra.Smooth.Weil
     withWeil,
     weilToPoly,
     polyToWeil,
-    diffUpTo',
 
     -- * Various lifting functions
     liftSmoothSeries,
@@ -868,25 +867,6 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
                   ]
             }
 
-diffUpTo' ::
-  forall a.
-  (Real a, Eq a, Floating a) =>
-  Word ->
-  (forall x. Floating x => x -> x) ->
-  a ->
-  M.Map Word a
-diffUpTo' n f x =
-  case someNatVal $ fromIntegral n of
-    SomeNat (_ :: Proxy n) ->
-      let a = f (injCoeWeil x + di 0) :: Weil (DOrder (n + 1)) a
-       in M.mapWithKey
-            ( \m y -> fromInteger (factorial $ fromIntegral m) P.* y
-            )
-            $ coerce $
-              M.mapKeysMonotonic (fromIntegral . totalDegree) $
-                terms $
-                  weilToPoly a
-
 realPart ::
   forall w a n m.
   (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Floating a, Real a) =>
@@ -957,5 +937,5 @@ diffUpTo ::
   M.Map Natural a
 diffUpTo n f a = case someNatVal n of
   SomeNat (_ :: Proxy n) ->
-    let Weil vec = f (injCoeWeil a + di 0) :: Weil (DOrder n) a
-     in M.fromList $ zip [0 ..] $ SV.toList vec
+    let Weil vec = f (injCoeWeil a + di 0) :: Weil (DOrder (n + 1)) a
+     in M.fromList $ zipWith (\i c -> (i, fromIntegral (factorial $ fromIntegral i) P.* c)) [0 ..] $ SV.toList vec

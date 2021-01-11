@@ -14,7 +14,7 @@ main =
         [ bgroup
           (show n)
           [ bench "AD" $ nf (take (n + 1) . AD.diffs id) (0.0 :: Double)
-          , bench "Dn" $ nf (Dn.diffUpTo' (fromIntegral n) id) (0.0 :: Double)
+          , bench "Dn" $ nf (Dn.diffUpTo (fromIntegral n) id) (0.0 :: Double)
           ]
         | n <- [0 .. 10]
         ]
@@ -23,7 +23,7 @@ main =
         [ bgroup
           (show n)
           [ bench "AD" $ nf (take (n + 1) . AD.diffs exp) (0.0 :: Double)
-          , bench "Dn" $ nf (Dn.diffUpTo' (fromIntegral n) exp) (0.0 :: Double)
+          , bench "Dn" $ nf (Dn.diffUpTo (fromIntegral n) exp) (0.0 :: Double)
           ]
         | n <- [0 .. 10]
         ]
@@ -34,7 +34,7 @@ main =
            in bgroup
                 (show n)
                 [ bench "AD" $ nf (take (n + 1) . AD.diffs f) (0.0 :: Double)
-                , bench "Dn" $ nf (Dn.diffUpTo' (fromIntegral n) f) (0.0 :: Double)
+                , bench "Dn" $ nf (Dn.diffUpTo (fromIntegral n) f) (0.0 :: Double)
                 ]
         | n <- [0 .. 10]
         ]
