@@ -521,7 +521,7 @@ injPoly p = Powers $ \a ->
 
 liftPSToPolysViaAD ::
   forall n k a.
-  (KnownNat n, KnownNat k, Floating a, Real a) =>
+  (KnownNat n, KnownNat k, Floating a, Eq a) =>
   (forall x. Floating x => Vec k x -> x) ->
   Vec k (Pol.Polynomial a n) ->
   PowerSeries n a
@@ -536,7 +536,7 @@ liftPSToPolysViaAD f pols = Powers $ \mon ->
               SV.map
                 ( AP.unwrapFractional
                     . Pol.eval (SV.map AP.WrapFractional xs)
-                    . Pol.mapCoeff (AP.WrapFractional . realToFrac)
+                    . Pol.mapCoeff (AP.WrapFractional . AD.auto)
                 )
                 pols
         )

@@ -26,7 +26,7 @@
 
 module Numeric.Algebra.Smooth.Weil
   ( Weil (Weil),
-    RealWeil (..),
+    realPart,
     diffUpTo,
     weilToVector,
     WeilSettings,
@@ -158,71 +158,71 @@ pattern Weil v <-
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Additive (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Monoidal (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Group (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Abelian (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Rig (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Commutative (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Multiplicative (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Semiring (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Unital (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     Ring (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     LeftModule Natural (Weil s r)
 
 instance
-  ( Real r
+  ( Eq r
   , Semiring r
   , KnownNat m
   , KnownNat n
@@ -235,7 +235,7 @@ instance
   (.*) = coerce $ V.map @r . (NA.*)
 
 instance
-  ( Real r
+  ( Eq r
   , Semiring r
   , KnownNat m
   , KnownNat n
@@ -250,19 +250,19 @@ instance
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     RightModule Natural (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     LeftModule Integer (Weil s r)
 
 deriving via
   WrapNum (Weil s r)
   instance
-    (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
     RightModule Integer (Weil s r)
 
 fromRational' ::
@@ -280,7 +280,7 @@ injCoeWeil a =
       (\i -> if i == 0 then a else 0)
 
 instance
-  (KnownNat n, Real r, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+  (KnownNat n, KnownNat m, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
   Num (Weil s r)
   where
   (+) = coerce $ V.zipWith ((P.+) @r)
@@ -308,7 +308,7 @@ instance
   ( KnownNat m
   , KnownNat n
   , Eq r
-  , Real r
+  , Eq r
   , Floating r
   , Reifies s (WeilSettings n m)
   ) =>
@@ -322,7 +322,7 @@ instance
   ( KnownNat m
   , KnownNat n
   , Eq r
-  , Real r
+  , Eq r
   , Floating r
   , Reifies s (WeilSettings n m)
   ) =>
@@ -351,7 +351,7 @@ instance
 liftSmoothSeries ::
   ( Reifies s (WeilSettings n m)
   , KnownNat k
-  , Real r
+  , Eq r
   , Floating r
   , Eq r
   , KnownNat n
@@ -373,7 +373,7 @@ liftSmoothSeries f (vs :: Vec k (Weil s r)) =
 liftSmoothSeriesAD ::
   ( Reifies s (WeilSettings n m)
   , KnownNat k
-  , Real r
+  , Eq r
   , Floating r
   , Eq r
   , KnownNat n
@@ -395,7 +395,6 @@ instance
   , KnownNat n
   , Eq r
   , Floating r
-  , Real r
   , Reifies s (WeilSettings n m)
   ) =>
   SmoothRing (Weil s r)
@@ -500,13 +499,13 @@ toWeil ps =
        in polyToWeil $ dic ^. re _Terms'
 
 instance
-  (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+  (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
   LeftModule (WrapFractional Double) (Weil s r)
   where
   (.*) (WrapFractional d) = coerce $ V.map (realToFrac @_ @r d P.*)
 
 instance
-  (Real r, KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+  (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
   RightModule (WrapFractional Double) (Weil s r)
   where
   Weil_ a *. WrapFractional d =
@@ -869,68 +868,16 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
 
 realPart ::
   forall w a n m.
-  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Floating a, Real a) =>
+  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Floating a) =>
   Weil w a ->
   a
 realPart (Weil_ vec)
   | V.null vec = 0
   | otherwise = V.head vec
 
-newtype RealWeil w a = RealWeil {runRealWeil :: Weil w a}
-
-deriving newtype instance
-  ( KnownNat n
-  , KnownNat m
-  , Reifies w (WeilSettings n m)
-  , Floating a
-  , Real a
-  ) =>
-  Num (RealWeil w a)
-
-deriving newtype instance
-  ( KnownNat n
-  , KnownNat m
-  , Reifies w (WeilSettings n m)
-  , Floating a
-  , Real a
-  ) =>
-  Fractional (RealWeil w a)
-
-deriving newtype instance
-  ( KnownNat n
-  , KnownNat m
-  , Reifies w (WeilSettings n m)
-  , Floating a
-  , Real a
-  ) =>
-  Floating (RealWeil w a)
-
-instance
-  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Eq a) =>
-  Eq (RealWeil w a)
-  where
-  RealWeil (Weil_ as) == RealWeil (Weil_ bs) = V.head as == V.head bs
-
-instance
-  (KnownNat n, KnownNat m, Reifies w (WeilSettings n m), Ord a) =>
-  Ord (RealWeil w a)
-  where
-  RealWeil (Weil_ as) `compare` RealWeil (Weil_ bs) = compare (V.head as) (V.head bs)
-
-instance
-  ( KnownNat n
-  , KnownNat m
-  , Reifies w (WeilSettings n m)
-  , Floating a
-  , Real a
-  ) =>
-  Real (RealWeil w a)
-  where
-  toRational = toRational . realPart . runRealWeil
-
 diffUpTo ::
   forall a.
-  (Floating a, Real a) =>
+  (Floating a, Eq a) =>
   Natural ->
   (forall x. Floating x => x -> x) ->
   a ->
