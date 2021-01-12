@@ -181,7 +181,6 @@ instance ApproxEq Double where
 
 instance
   ( ApproxEq a
-  , Real a
   , Floating a
   , Reifies w (WeilSettings n m)
   , KnownNat n
