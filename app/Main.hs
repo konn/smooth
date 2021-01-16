@@ -147,10 +147,10 @@ main :: IO ()
 main = return ()
 
 errdegs :: UVec 2 Word
-errdegs = 3 :< 4 :< NilR
+errdegs = 3 :< 4 :< Nil
 
 errInps :: Vec 2 Double
-errInps = 3 :< 18 :< NilR
+errInps = 3 :< 18 :< Nil
 
 interped :: Floating x => x -> x -> x
 interped x y =
