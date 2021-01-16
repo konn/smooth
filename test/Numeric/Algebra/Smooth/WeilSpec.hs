@@ -30,7 +30,7 @@ import Data.Semialign.Indexed
 import Data.Singletons.Prelude (sing)
 import Data.Sized.Builtin
   ( (%!!),
-    pattern NilR,
+    pattern Nil,
     pattern (:<),
   )
 import qualified Data.Sized.Builtin as SV
@@ -56,7 +56,7 @@ prop_WeilD1_coincides_with_Dual_on_sin =
     let l =
           weilToVector $
             liftUnary @(Weil D1 Double) sin $
-              Weil (x :< dx :< NilR)
+              Weil (x :< dx :< Nil)
      in liftUnary @(Dual Double) sin (Dual x dx)
           === Dual (l %!! 0) (l %!! 1)
 
@@ -68,8 +68,8 @@ prop_WeilD1_coincides_with_Dual_on_complexBin =
           weilToVector $
             liftBinary @(Weil D1 Double)
               f
-              (Weil (a :< da :< NilR))
-              (Weil (b :< db :< NilR))
+              (Weil (a :< da :< Nil))
+              (Weil (b :< db :< Nil))
      in liftBinary @(Dual Double) f (Dual a da) (Dual b db)
           ==~ Dual (l %!! 0) (l %!! 1)
 
@@ -89,7 +89,7 @@ prop_WeilD1_coincides_with_Dual_on_complex =
             dualAns =
               liftSmooth @(Dual Double)
                 f
-                (SV.map (\(a :< da :< NilR) -> Dual a da) ds)
+                (SV.map (\(a :< da :< Nil) -> Dual a da) ds)
             weilAns = Dual (l %!! 0) (l %!! 1)
          in dualAns ==~ weilAns
 
@@ -101,7 +101,7 @@ prop_Weil_Cubic_computes_upto_2nd_derivative_for_sin =
             weilToVector $
               liftUnary @(Weil Cubic Double)
                 sin
-                (Weil $ a :< 1 :< 0 :< NilR)
+                (Weil $ a :< 1 :< 0 :< Nil)
      in fa ==~ sin a
           .&&. f'a ==~ cos a
           .&&. f''adiv2 ==~ -0.5 * sin a
@@ -118,7 +118,7 @@ prop_Weil_Cubic_computes_upto_2nd_derivative =
               weilToVector $
                 liftSmooth @(Weil Cubic Double)
                   (evalExpr expr)
-                  ( SV.singleton $ Weil $ a :< 1 :< 0 :< NilR ::
+                  ( SV.singleton $ Weil $ a :< 1 :< 0 :< Nil ::
                       Vec 1 (Weil Cubic Double)
                   )
        in fa ==~ faAns
@@ -213,14 +213,14 @@ test_WeilProduct =
     , testProperty "D2 |*| D3 |*| D4" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
         let f :: forall x. Floating x => Vec 3 x -> x
             f = evalExpr expr
-            table = AD.grads f (x :< y :< z :< NilR)
+            table = AD.grads f (x :< y :< z :< Nil)
             expected :: Map (UVec 3 Int) Double
             expected =
               M.fromList
                 [ (SV.map fromIntegral deg, walkAlong deg table)
                 | deg <-
                     otraverse (enumFromTo 0) $
-                      SV.unsafeFromList' @3 [1, 2, 3]
+                      SV.unsafeFromList' @_ @_ @3 [1, 2, 3]
                 ]
             result =
               M.mapMaybe
@@ -232,7 +232,7 @@ test_WeilProduct =
                     liftSmooth
                       @(Weil (DOrder 2 |*| DOrder 3 |*| DOrder 4) Double)
                       f
-                      (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< injCoeWeil z + di 2 :< NilR)
+                      (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< injCoeWeil z + di 2 :< Nil)
          in conjoin $
               toList $
                 ialignWith
@@ -266,11 +266,11 @@ chkWeilProduct
             expected :: Map (UVec 2 Int) Double
             expected =
               M.fromList
-                [ ( fromIntegral n0 :< fromIntegral m0 :< NilR
+                [ ( fromIntegral n0 :< fromIntegral m0 :< Nil
                   , AD.diffs
                       ( \b ->
                           AD.diffs
-                            (\a -> f $ a :< AD.auto b :< NilR)
+                            (\a -> f $ a :< AD.auto b :< Nil)
                             (AD.auto x)
                             !? n0
                       )
@@ -290,7 +290,7 @@ chkWeilProduct
                     liftSmooth
                       @(Weil (DOrder n |*| DOrder m) Double)
                       f
-                      (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< NilR)
+                      (injCoeWeil x + di 0 :< injCoeWeil y + di 1 :< Nil)
          in conjoin $
               toList $
                 ialignWith

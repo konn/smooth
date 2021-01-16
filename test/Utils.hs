@@ -15,6 +15,8 @@
 
 module Utils where
 
+import Control.Subcategory (CFoldable, CFreeMonoid, CZip, Dom)
+import Data.MonoTraversable
 import Data.Reflection (Reifies)
 import Data.Singletons.Prelude (sing)
 import Data.Sized.Builtin (Sized)
@@ -69,7 +71,7 @@ infixr 8 :^ --, :**
 instance
   ( MonoTraversable (v a)
   , Element (v a) ~ a
-  , G.DomC v a
+  , Dom v a
   , G.Vector v a
   , KnownNat n
   , Arbitrary a
@@ -132,7 +134,7 @@ instance KnownNat n => Arbitrary (TotalExpr n) where
 
 evalExpr ::
   forall n a f.
-  (KnownNat n, Floating a, SV.DomC f a) =>
+  (KnownNat n, Floating a, CFoldable f, SV.DomC f a) =>
   Expr n ->
   Sized f n a ->
   a
@@ -215,6 +217,8 @@ instance
   , G.Vector v a
   , KnownNat n
   , ApproxEq a
+  , CZip v
+  , CFreeMonoid v
   ) =>
   ApproxEq (Sized v n a)
   where
