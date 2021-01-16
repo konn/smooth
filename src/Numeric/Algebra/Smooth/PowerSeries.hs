@@ -37,8 +37,8 @@ import Control.Lens
     (^..),
   )
 import Control.Monad (guard)
+import Control.Subcategory (CFreeMonoid, Dom)
 import Data.Coerce (coerce)
-import Data.ListLike (ListLike)
 import Data.MonoTraversable
 import Data.Monoid (Product (..))
 import Data.Semialign (alignWith)
@@ -174,7 +174,8 @@ diag ::
   ( Num a
   , G.Vector v a
   , KnownNat n
-  , ListLike (v a) a
+  , Dom v a
+  , CFreeMonoid v
   ) =>
   SV.Ordinal n ->
   SV.Sized v n a
@@ -548,7 +549,7 @@ walkAlong ::
   UVec n Word ->
   Cofree (SV.Sized V.Vector n) a ->
   a
-walkAlong SV.NilR (a Cof.:< SV.NilR) = a
+walkAlong SV.Nil (a Cof.:< SV.Nil) = a
 walkAlong (0 SV.:< (rest :: UVec m Word)) (a :< deep) =
   withWitness
     (lneqZero $ sing @m)

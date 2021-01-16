@@ -94,7 +94,7 @@ import Data.Singletons.Decide (decideEquality)
 import Data.Singletons.Prelude (sing)
 import Data.Singletons.TypeLits (withKnownNat)
 import Data.Sized
-  ( pattern NilR,
+  ( pattern Nil,
     pattern (:<),
   )
 import qualified Data.Sized.Builtin as SV
@@ -572,6 +572,7 @@ reifyWeil i f = do
   pure $ reify ws f
 
 withWeil ::
+  forall a n.
   (KnownNat n, Eq a, Fractional a) =>
   Ideal (Polynomial Rational n) ->
   ( forall s m.
@@ -616,7 +617,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
       withKnownNat sn $
         let weilMonomDic =
               LHM.fromList
-                [ (mon, SV.unsafeToSized' @m pol)
+                [ (mon, SV.unsafeToSized sn pol)
                 | mon <- otraverse (enumFromTo 0) nonZeroVarMaxPowers
                 , let pol =
                         vectorRep $
@@ -743,11 +744,11 @@ instance Reifies D1 (WeilSettings 2 1) where
   reflect =
     const $
       WeilSettings
-        { weilBasis = SV.singleton 0 :< SV.singleton 1 :< NilR
+        { weilBasis = SV.singleton 0 :< SV.singleton 1 :< Nil
         , weilMonomDic =
             HM.fromList
-              [ (SV.singleton 0, 1 :< 0 :< SV.NilR)
-              , (SV.singleton 1, 0 :< 1 :< SV.NilR)
+              [ (SV.singleton 0, 1 :< 0 :< SV.Nil)
+              , (SV.singleton 1, 0 :< 1 :< SV.Nil)
               ]
         , nonZeroVarMaxPowers = SV.singleton 1
         , table = HM.fromList [((0, 0), one), ((0, 1), var 0)]

@@ -5,13 +5,6 @@
 
 packages:
 - completed:
-    hackage: equational-reasoning-0.6.0.1@sha256:8a1422fb4a79f19d3e95e73f721aa764968e12768b5e2d2e2940e2db71d2e452,1737
-    pantry-tree:
-      size: 496
-      sha256: 9ffa610397f60afd6f8843eaa4ab4b0b4fa69cdf26f6107990f07822b845a643
-  original:
-    hackage: equational-reasoning-0.6.0.1
-- completed:
     hackage: algebra-4.3.1@sha256:323cf20c508e0b71422b767ff3a89e4188f68aa59b2df9d0fe6e9f9bae7938fb,4129
     pantry-tree:
       size: 5556
@@ -33,12 +26,19 @@ packages:
   original:
     hackage: unamb-0.2.7
 - completed:
-    hackage: repa-3.4.1.4@sha256:5c836bc314ea04ac284d21117b361eb95829d793e8f82508535aa0ca04911d9e,3315
+    hackage: repa-3.4.1.4@sha256:50a1755bfbbf7110296dc1f8d6ec08b03bd94148a97218e0403af2ddcdc51648,3323
     pantry-tree:
       size: 2965
-      sha256: 658dece8ff797a9ff0940ad812b966e0a93c3e4442f73c27b96d615106db7db8
+      sha256: 3c79828091edd25dce51538e04c7b75241fcd8a91dc2d7a155590a7bbe4e937f
   original:
-    hackage: repa-3.4.1.4
+    hackage: repa-3.4.1.4@rev:7
+- completed:
+    hackage: process-extras-0.7.4@sha256:4e79289131415796c181889c4a226ebab7fc3b0d27b164f65e1aad123ae9b9e3,1759
+    pantry-tree:
+      size: 1092
+      sha256: ee89d385c9e822144698633b39f378904e42667aaca0d6ab577d7dea2b452c92
+  original:
+    hackage: process-extras-0.7.4
 - completed:
     size: 11649
     url: https://github.com/konn/factorials/archive/f4ae86d3ff241258d08663f77b550c945bb65497.tar.gz
@@ -52,7 +52,7 @@ packages:
     url: https://github.com/konn/factorials/archive/f4ae86d3ff241258d08663f77b550c945bb65497.tar.gz
 snapshots:
 - completed:
-    size: 496112
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/15.yaml
-    sha256: 86169722ad0056ffc9eacc157ef80ee21d7024f92c0d2961c89ccf432db230a3
-  original: lts-15.15
+    size: 562265
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/1/15.yaml
+    sha256: b1d38ff01a29a9fea75cd8956c2317190ba39d8519106c03d163c387b7b097eb
+  original: nightly-2021-01-15

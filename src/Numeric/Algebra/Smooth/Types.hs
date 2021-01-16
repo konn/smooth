@@ -12,7 +12,6 @@
 
 module Numeric.Algebra.Smooth.Types (Vec, UVec, convVec) where
 
-import Data.ListLike
 import Data.Sized.Builtin (Sized)
 import qualified Data.Sized.Builtin as SV
 import Data.Vector (Vector)
@@ -26,7 +25,7 @@ type UVec n a = Sized U.Vector n a
 
 convVec ::
   forall u v n a.
-  (G.Vector v a, G.Vector u a, KnownNat n, ListLike (u a) a) =>
+  (G.Vector v a, G.Vector u a, KnownNat n, SV.DomC u a) =>
   Sized v n a ->
   Sized u n a
 convVec = SV.unsafeToSized' . G.convert . SV.unsized

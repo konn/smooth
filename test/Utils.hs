@@ -15,8 +15,6 @@
 
 module Utils where
 
-import Data.ListLike (ListLike)
-import Data.MonoTraversable
 import Data.Reflection (Reifies)
 import Data.Singletons.Prelude (sing)
 import Data.Sized.Builtin (Sized)
@@ -71,7 +69,7 @@ infixr 8 :^ --, :**
 instance
   ( MonoTraversable (v a)
   , Element (v a) ~ a
-  , ListLike (v a) a
+  , G.DomC v a
   , G.Vector v a
   , KnownNat n
   , Arbitrary a
@@ -134,7 +132,7 @@ instance KnownNat n => Arbitrary (TotalExpr n) where
 
 evalExpr ::
   forall n a f.
-  (KnownNat n, Floating a, ListLike (f a) a) =>
+  (KnownNat n, Floating a, SV.DomC f a) =>
   Expr n ->
   Sized f n a ->
   a
@@ -212,8 +210,8 @@ instance
   , MonoFoldable (v Bool)
   , Element (v a) ~ a
   , Element (v Bool) ~ Bool
-  , ListLike (v Bool) Bool
-  , ListLike (v a) a
+  , SV.DomC v Bool
+  , SV.DomC v a
   , G.Vector v a
   , KnownNat n
   , ApproxEq a

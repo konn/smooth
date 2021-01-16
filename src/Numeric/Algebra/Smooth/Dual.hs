@@ -33,7 +33,7 @@ import Numeric.Algebra.Smooth.Weil
 type Dual = Weil D1
 
 pattern Dual :: a -> a -> Dual a
-pattern Dual {value, epsilon} = Weil (value SV.:< epsilon SV.:< SV.NilR)
+pattern Dual {value, epsilon} = Weil (value SV.:< (epsilon SV.:< (SV.Nil :: Vec 0 a) :: Vec 1 a))
 
 {-# COMPLETE Dual :: Weil #-}
 

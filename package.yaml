@@ -47,8 +47,8 @@ dependencies:
 - linear
 - hashable
 - unordered-containers
-- ListLike
 - reflection
+- subcategories
 
 ghc-options:
 - -Wall
@@ -97,10 +97,10 @@ tests:
     - generic-random
     - vector
     - mono-traversable
-    - ListLike
     - ghc-typelits-knownnat
     - singletons
     - quickcheck-instances
+    - singletons
     - QuickCheck
     - tasty-discover
     - tasty-quickcheck

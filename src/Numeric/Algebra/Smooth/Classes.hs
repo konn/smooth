@@ -8,14 +8,15 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 
 module Numeric.Algebra.Smooth.Classes where
 
 import qualified AlgebraicPrelude as AP
-import Data.Sized.Builtin (pattern NilR, pattern (:<))
+import Data.Sized.Builtin (pattern Nil, pattern (:<))
 import qualified Data.Sized.Builtin as SV
 import GHC.TypeNats
 import qualified Numeric.Algebra as NA
@@ -62,6 +63,7 @@ liftUnary ::
 liftUnary f = liftSmooth (f . SV.head) . SV.singleton
 
 liftBinary ::
+  forall w.
   (SmoothRing w) =>
   (forall a. Floating a => a -> a -> a) ->
   w ->
@@ -69,4 +71,4 @@ liftBinary ::
   w
 {-# INLINE liftBinary #-}
 liftBinary f =
-  \a b -> liftSmooth (\(x :< y :< NilR) -> f x y) $ a :< b :< NilR
+  \a b -> liftSmooth @w @2 (\(x :< (y :< (Nil :: Vec 0 a) :: Vec 1 a)) -> f x y) $ a :< b :< Nil

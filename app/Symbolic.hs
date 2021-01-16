@@ -61,6 +61,7 @@ import GHC.Generics (Generic)
 import Numeric.Algebra
   ( Abelian,
     Additive,
+    Commutative,
     Division,
     Group,
     LeftModule,
@@ -72,6 +73,7 @@ import Numeric.Algebra
     Semiring,
     Unital,
   )
+import Numeric.Decidable.Zero
 import Numeric.Natural (Natural)
 import Type.Reflection (Typeable)
 
@@ -306,3 +308,8 @@ unfoldBin p = (getSum *** DL.toList) . go
       case e ^? p of
         Nothing -> (1, DL.singleton e)
         Just (l, r) -> go l <> go r
+
+instance DecidableZero Symbolic where
+  isZero = (== 0)
+
+instance Commutative Symbolic
