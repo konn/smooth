@@ -80,7 +80,7 @@ benchFor title = wgroup title $
 
       let !inp3 = force $ SV.replicate' $ SV.head inp
           g :: forall x. Floating x => SV.Sized V.Vector 3 x -> x
-          g = \(x SV.:< y SV.:< z SV.:< SV.NilR) -> sin x * exp (y ^ 2 + z)
+          g = \(x SV.:< y SV.:< z SV.:< SV.Nil) -> sin x * exp (y ^ 2 + z)
       wgroup "sin x * exp (y^2 + z)" $ do
         func "liftSmoothSeries" (liftSmoothSeries g) inp3
         func "liftSmoothSerisAD" (liftSmoothSeriesAD g) inp3

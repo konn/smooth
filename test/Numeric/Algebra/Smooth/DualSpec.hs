@@ -20,7 +20,7 @@ import qualified Data.Foldable as F
 import qualified Data.Map as Map
 import Data.Proxy
 import Data.Semialign.Indexed
-import Data.Sized.Builtin (pattern NilR, pattern (:<))
+import Data.Sized.Builtin (pattern Nil, pattern (:<))
 import qualified Data.Sized.Builtin as SV
 import Data.These
 import qualified Data.Vector as V
@@ -62,7 +62,7 @@ prop_liftSmotoh_coincides_with_complexBin :: Property
 prop_liftSmotoh_coincides_with_complexBin =
   forAll (arbitrary @(Vec 2 (Dual Double))) $ \args ->
     let f :: Floating x => Vec 2 x -> x
-        f (x :< y :< NilR) = log (1 + y ^ 2) * sin (x ^ 2 + y * x)
+        f (x :< y :< Nil) = log (1 + y ^ 2) * sin (x ^ 2 + y * x)
         f _ = error "Could not happen!"
      in liftSmooth @(Dual Double) f args
           ==~ f args

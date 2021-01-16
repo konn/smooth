@@ -41,7 +41,6 @@ import Data.Type.Natural.Class
   )
 import Data.Type.Ordinal
 import Data.Void (absurd)
-import Debug.Trace (trace)
 import GHC.TypeNats (KnownNat, Nat, type (<=))
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
@@ -182,13 +181,17 @@ instance (Num a, KnownNat n) => Num (SSeries n a) where
   ZSeries a + ZSeries b = ZSeries (a + b)
   SSeries a da dus + SSeries b db dvs =
     SSeries (a + b) (da + db) (dus + dvs)
-  _ + _ = absurd $ succNonCyclic (sing @n) Refl
+  ZSeries {} + SSeries {} = absurd $ succNonCyclic (sing @n) Refl
+  SSeries {} + ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
+
   NullSeries - a = negate a
   a - NullSeries = a
   ZSeries a - ZSeries b = ZSeries (a - b)
   SSeries a da dus - SSeries b db dvs =
     SSeries (a + b) (da + db) (dus + dvs)
-  _ - _ = absurd $ succNonCyclic (sing @n) Refl
+  ZSeries {} - SSeries {} = absurd $ succNonCyclic (sing @n) Refl
+  SSeries {} - ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
+
   negate NullSeries = NullSeries
   negate (ZSeries a) = ZSeries $ negate a
   negate (SSeries a da dus) =
@@ -198,7 +201,8 @@ instance (Num a, KnownNat n) => Num (SSeries n a) where
   ZSeries a * ZSeries b = ZSeries $ a * b
   l@(SSeries a da dus) * r@(SSeries b db dvs) =
     SSeries (a * b) (l * db + da * r) (dus * dvs)
-  _ * _ = absurd $ succNonCyclic (sing @n) Refl
+  ZSeries {} * SSeries {} = absurd $ succNonCyclic (sing @n) Refl
+  SSeries {} * ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
 
 instance (KnownNat n, Fractional a) => Fractional (SSeries n a) where
   fromRational 0 = NullSeries
@@ -295,8 +299,6 @@ cutoff = go (SV.replicate' 0)
       Map (UVec m Word) a
     go _ _ NullSeries = Map.empty
     go _ _ (ZSeries a) = Map.singleton Nil a
-    go Nil _ SSeries {} = absurd $ succNonCyclic (sing @m) Refl
-    go _ Nil SSeries {} = absurd $ succNonCyclic (sing @m) Refl
     go pow@((!n) :< rest) ((!ub) :< ubs) (SSeries x dx dus)
       | n == ub =
         Map.insert pow x $ Map.mapKeysMonotonic (n :<) (go rest ubs dus)
@@ -304,6 +306,8 @@ cutoff = go (SV.replicate' 0)
         Map.insert pow x $
           go (n + 1 :< rest) (ub :< ubs) dx
             `Map.union` Map.mapKeysMonotonic (n :<) (go rest ubs dus)
+    go Nil _ SSeries {} = absurd $ succNonCyclic (sing @1) Refl
+    go _ Nil SSeries {} = absurd $ succNonCyclic (sing @1) Refl
 
--- >>> allDerivs (\(x SV.:< y SV.:< SV.NilR) -> x ^ 2 * y) (3 SV.:< 2 SV.:< SV.NilR)
+-- >>> allDerivs (\(x SV.:< y SV.:< SV.Nil) -> x ^ 2 * y) (3 SV.:< 2 SV.:< SV.Nil)
 -- SSeries 18 (SSeries 12 (SSeries 4 NullSeries (SSeries 4 (SSeries 2 NullSeries (ZSeries 2)) (ZSeries 4))) (SSeries 12 (SSeries 6 NullSeries (ZSeries 6)) (ZSeries 12))) (SSeries 18 (SSeries 9 NullSeries (ZSeries 9)) (ZSeries 18))

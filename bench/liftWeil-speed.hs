@@ -64,7 +64,7 @@ benchFor title =
                 ]
         , env (evaluate $ SV.replicate' $ SV.head inp) $ \inp3 ->
             let f :: forall x. Floating x => SV.Sized V.Vector 3 x -> x
-                f = \(x SV.:< y SV.:< z SV.:< SV.NilR) -> sin x * exp (y ^ 2 + z)
+                f = \(x SV.:< y SV.:< z SV.:< SV.Nil) -> sin x * exp (y ^ 2 + z)
              in bgroup
                   "sin x * exp (y^2 + z)"
                   [ bench "liftSmoothSeries" $
