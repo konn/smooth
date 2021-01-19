@@ -188,7 +188,7 @@ instance (Num a, KnownNat n) => Num (SSeries n a) where
   a - NullSeries = a
   ZSeries a - ZSeries b = ZSeries (a - b)
   SSeries a da dus - SSeries b db dvs =
-    SSeries (a + b) (da + db) (dus + dvs)
+    SSeries (a - b) (da - db) (dus - dvs)
   ZSeries {} - SSeries {} = absurd $ succNonCyclic (sing @n) Refl
   SSeries {} - ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
 
