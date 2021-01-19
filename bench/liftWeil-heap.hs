@@ -25,6 +25,7 @@ import Numeric.Algebra.Smooth.Weil
     WeilSettings,
     liftSmoothSeries,
     liftSmoothSeriesAD,
+    liftSmoothSuccinctTower,
     reifyWeil,
     type (|*|),
   )
@@ -69,14 +70,17 @@ benchFor title = wgroup title $
       wgroup "identity" $ do
         func "liftSmoothSeries" (liftSmoothSeries SV.head) inp
         func "liftSmoothSerisAD" (liftSmoothSeriesAD SV.head) inp
+        func "liftSmoothSuccinctTower" (liftSmoothSuccinctTower SV.head) inp
       wgroup "exp x" $ do
         func "liftSmoothSeries" (liftSmoothSeries (exp . SV.head)) inp
         func "liftSmoothSerisAD" (liftSmoothSeriesAD (exp . SV.head)) inp
+        func "liftSmoothSuccinctTower" (liftSmoothSuccinctTower (exp . SV.head)) inp
       let f :: forall x. Floating x => x -> x
           f = \x -> sin x * exp (x ^ 2 + x)
       wgroup "sin x * exp (x^2 + x)" $ do
         func "liftSmoothSeries" (liftSmoothSeries (f . SV.head)) inp
         func "liftSmoothSerisAD" (liftSmoothSeriesAD (f . SV.head)) inp
+        func "liftSmoothSuccinctTower" (liftSmoothSuccinctTower (f . SV.head)) inp
 
       let !inp3 = force $ SV.replicate' $ SV.head inp
           g :: forall x. Floating x => SV.Sized V.Vector 3 x -> x
@@ -84,6 +88,7 @@ benchFor title = wgroup title $
       wgroup "sin x * exp (y^2 + z)" $ do
         func "liftSmoothSeries" (liftSmoothSeries g) inp3
         func "liftSmoothSerisAD" (liftSmoothSeriesAD g) inp3
+        func "liftSmoothSuccinctTower" (liftSmoothSuccinctTower g) inp3
   where
     inputs :: [(String, SV.Sized V.Vector n Double)]
     inputs =
