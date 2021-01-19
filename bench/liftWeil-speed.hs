@@ -49,11 +49,13 @@ benchFor title =
             "identity"
             [ bench "liftSmoothSeries" $ nf (liftSmoothSeries SV.head) inp
             , bench "liftSmoothSerisAD" $ nf (liftSmoothSeriesAD SV.head) inp
+            , bench "liftSmoothSuccinctTower" $ nf (liftSmoothSuccinctTower SV.head) inp
             ]
         , bgroup
             "exp x"
             [ bench "liftSmoothSeries" $ nf (liftSmoothSeries (exp . SV.head)) inp
             , bench "liftSmoothSerisAD" $ nf (liftSmoothSeriesAD (exp . SV.head)) inp
+            , bench "liftSmoothSuccinctTower" $ nf (liftSmoothSuccinctTower (exp . SV.head)) inp
             ]
         , let f :: forall x. Floating x => x -> x
               f = \x -> sin x * exp (x ^ 2 + x)
@@ -61,6 +63,7 @@ benchFor title =
                 "sin x * exp (x^2 + x)"
                 [ bench "liftSmoothSeries" $ nf (liftSmoothSeries (f . SV.head)) inp
                 , bench "liftSmoothSerisAD" $ nf (liftSmoothSeriesAD (f . SV.head)) inp
+                , bench "liftSmoothSuccinctTower" $ nf (liftSmoothSuccinctTower (f . SV.head)) inp
                 ]
         , env (evaluate $ SV.replicate' $ SV.head inp) $ \inp3 ->
             let f :: forall x. Floating x => SV.Sized V.Vector 3 x -> x
@@ -74,6 +77,10 @@ benchFor title =
                   , bench "liftSmoothSerisAD" $
                       nf
                         (liftSmoothSeriesAD f)
+                        inp3
+                  , bench "liftSmoothSuccinctTower" $
+                      nf
+                        (liftSmoothSuccinctTower f)
                         inp3
                   ]
         ]
