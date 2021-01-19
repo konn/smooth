@@ -3,6 +3,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE KindSignatures #-}
@@ -22,7 +23,7 @@
 module Numeric.Algebra.Smooth.PowerSeries.SuccinctTower where
 
 import qualified AlgebraicPrelude as AP
-import Control.Lens.Indexed (FunctorWithIndex (imap))
+import Control.Lens.Indexed (FunctorWithIndex (imap), ifoldMapBy)
 import Control.Monad (join)
 import Data.Coerce
 import Data.Map (Map)
@@ -217,42 +218,41 @@ liftSSeries ::
   (KnownNat n, Floating a) =>
   (forall x. Floating x => x -> x) ->
   (forall x. Floating x => x -> x) ->
-  Maybe (SSeries n a) ->
   SSeries n a ->
   SSeries n a
 {-# INLINE liftSSeries #-}
-liftSSeries f df mIfZero = \case
-  NullSeries -> fromMaybe (constSS (f 0.0)) mIfZero
+liftSSeries f df = \case
+  NullSeries -> f (constSS 0.0)
   ZSeries a -> ZSeries (f a)
   x@(SSeries a da dus) ->
     SSeries (f a) (da * df x) (f dus)
 
 instance (KnownNat n, Floating a) => Floating (SSeries n a) where
   pi = constSS pi
-  exp = liftSSeries exp exp (Just 1.0)
+  exp = liftSSeries exp exp
   {-# INLINE exp #-}
-  log = liftSSeries log recip Nothing
+  log = liftSSeries log recip
   {-# INLINE log #-}
-  sin = liftSSeries sin cos (Just NullSeries)
+  sin = liftSSeries sin cos
   {-# INLINE sin #-}
-  cos = liftSSeries cos (negate . sin) (Just 1.0)
+  cos = liftSSeries cos (negate . sin)
   {-# INLINE cos #-}
-  tan = liftSSeries tan (recip . join (*) . cos) (Just NullSeries)
+  tan = liftSSeries tan (recip . join (*) . cos)
   {-# INLINE tan #-}
-  asin = liftSSeries asin (recip . sqrt . (1 -) . join (*)) (Just NullSeries)
+  asin = liftSSeries asin (recip . sqrt . (1 -) . join (*))
   {-# INLINE asin #-}
-  acos = liftSSeries acos (negate . recip . sqrt . (1 -) . join (*)) Nothing
+  acos = liftSSeries acos (negate . recip . sqrt . (1 -) . join (*))
   {-# INLINE acos #-}
-  atan = liftSSeries atan (recip . (+ 1) . join (*)) (Just NullSeries)
+  atan = liftSSeries atan (recip . (+ 1) . join (*))
   {-# INLINE atan #-}
-  sinh = liftSSeries sinh cosh (Just NullSeries)
+  sinh = liftSSeries sinh cosh
   {-# INLINE sinh #-}
-  cosh = liftSSeries cosh sinh (Just 1.0)
+  cosh = liftSSeries cosh sinh
   {-# INLINE cosh #-}
-  tanh = liftSSeries tanh (join (*) . recip . cosh) (Just NullSeries)
-  asinh = liftSSeries asinh (recip . sqrt . (1 +) . join (*)) (Just NullSeries)
-  acosh = liftSSeries acosh (recip . sqrt . (1 +) . join (*)) Nothing
-  atanh = liftSSeries atanh (recip . (1 -) . join (*)) (Just NullSeries)
+  tanh = liftSSeries tanh (join (*) . recip . cosh)
+  asinh = liftSSeries asinh (recip . sqrt . (1 +) . join (*))
+  acosh = liftSSeries acosh (recip . sqrt . (1 +) . join (*))
+  atanh = liftSSeries atanh (recip . (1 -) . join (*))
 
 asNth :: (KnownNat n, Num a) => Ordinal n -> a -> SSeries n a
 asNth (OLt (k :: SNat k)) a = withKnownNat k $ asNth' @k a
@@ -287,27 +287,69 @@ allDerivs f =
 instance (KnownNat n, Floating a) => SmoothRing (SSeries n a) where
   liftSmooth = ($)
 
-cutoff :: forall n a. (Show a, KnownNat n) => UVec n Word -> SSeries n a -> Map (UVec n Word) a
-cutoff = go (SV.replicate' 0)
+cutoff :: forall n a. (KnownNat n) => UVec n Word -> SSeries n a -> Map (UVec n Word) a
+cutoff = go 0
   where
     go ::
       forall m.
       KnownNat m =>
-      UVec m Word ->
+      Word ->
       UVec m Word ->
       SSeries m a ->
       Map (UVec m Word) a
     go _ _ NullSeries = Map.empty
     go _ _ (ZSeries a) = Map.singleton Nil a
-    go pow@((!n) :< rest) ((!ub) :< ubs) (SSeries x dx dus)
+    go !n ((!ub) :< ubs) (SSeries x dx dus)
       | n == ub =
-        Map.insert pow x $ Map.mapKeysMonotonic (n :<) (go rest ubs dus)
+        Map.insert pow x $ Map.mapKeysMonotonic (n :<) (go 0 ubs dus)
       | otherwise =
         Map.insert pow x $
-          go (n + 1 :< rest) (ub :< ubs) dx
-            `Map.union` Map.mapKeysMonotonic (n :<) (go rest ubs dus)
-    go Nil _ SSeries {} = absurd $ succNonCyclic (sing @1) Refl
+          go (n + 1) (ub :< ubs) dx
+            `Map.union` Map.mapKeysMonotonic (n :<) (go 0 ubs dus)
+      where
+        pow = n :< SV.replicate' 0
     go _ Nil SSeries {} = absurd $ succNonCyclic (sing @1) Refl
 
 -- >>> allDerivs (\(x SV.:< y SV.:< SV.Nil) -> x ^ 2 * y) (3 SV.:< 2 SV.:< SV.Nil)
 -- SSeries 18 (SSeries 12 (SSeries 4 NullSeries (SSeries 4 (SSeries 2 NullSeries (ZSeries 2)) (ZSeries 4))) (SSeries 12 (SSeries 6 NullSeries (ZSeries 6)) (ZSeries 12))) (SSeries 18 (SSeries 9 NullSeries (ZSeries 9)) (ZSeries 18))
+
+-- >>> towerFromMap $ Map.fromList [(i :< j :< Nil, 2^i * 3^j) | i <- [0..2], j <- [0..4], even j]
+-- SSeries 1 (SSeries 2 (SSeries 4 NullSeries (SSeries 4 (SSeries 0 (SSeries 36 (SSeries 0 (SSeries 324 NullSeries (ZSeries 324)) NullSeries) (ZSeries 36)) NullSeries) (ZSeries 4))) (SSeries 2 (SSeries 0 (SSeries 18 (SSeries 0 (SSeries 162 NullSeries (ZSeries 162)) NullSeries) (ZSeries 18)) NullSeries) (ZSeries 2))) (SSeries 1 (SSeries 0 (SSeries 9 (SSeries 0 (SSeries 81 NullSeries (ZSeries 81)) NullSeries) (ZSeries 9)) NullSeries) (ZSeries 1))
+
+towerFromMap ::
+  forall n a.
+  (KnownNat n, Num a) =>
+  Map (UVec n Word) a ->
+  SSeries n a
+towerFromMap =
+  go 0
+    <$> ifoldMapBy (SV.zipWith max) (SV.replicate' 0) const
+    <*> id
+  where
+    go ::
+      forall m.
+      KnownNat m =>
+      -- | Current power
+      Word ->
+      -- | Upperbounds of power
+      UVec m Word ->
+      -- | Coefficient dictionary
+      Map (UVec m Word) a ->
+      SSeries m a
+    go !_ Nil dic = maybe NullSeries ZSeries $ Map.lookup Nil dic
+    go !x ubss@(ub :< ubs) dic =
+      let pow = (x :< SV.replicate' 0)
+          cont
+            | x == ub = NullSeries
+            | otherwise = go (x + 1) ubss dic
+          subDic =
+            Map.mapKeysMonotonic SV.tail $
+              fst $
+                Map.split (x + 1 :< SV.replicate' 0) $
+                  if x > 0
+                    then
+                      let (_, eq, gt) = Map.splitLookup pow dic
+                       in maybe id (Map.insert pow) eq gt
+                    else dic
+       in SSeries (fromMaybe 0 $ Map.lookup pow dic) cont $
+            go 0 ubs subDic

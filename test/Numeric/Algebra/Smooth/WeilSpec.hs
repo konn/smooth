@@ -310,51 +310,68 @@ chkWeilProduct
 test_liftSmoothEquiv :: TestTree
 test_liftSmoothEquiv =
   testGroup
-    "liftSmoothSeries is equivalent to liftSmoothSeriesAD"
+    "lifting operators"
     [ testGroup
-        "D1"
-        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @D1 @1
-        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @D1 @2
-        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @D1 @3
+      (name ++ " is equivalent to liftSmoothSeries")
+      [ testGroup
+          "D1"
+          [ testProperty "unary" $ compareToSmoothSeries @D1 @1 lifter
+          , testProperty "binary" $ compareToSmoothSeries @D1 @2 lifter
+          , testProperty "ternary" $ compareToSmoothSeries @D1 @3 lifter
+          ]
+      , testGroup
+          "D2"
+          [ testProperty "unary" $ compareToSmoothSeries @D2 @1 lifter
+          , testProperty "binary" $ compareToSmoothSeries @D2 @2 lifter
+          , testProperty "ternary" $ compareToSmoothSeries @D2 @3 lifter
+          ]
+      , testGroup
+          "DOrder 4"
+          [ testProperty "unary" $ compareToSmoothSeries @(DOrder 4) @1 lifter
+          , testProperty "binary" $ compareToSmoothSeries @(DOrder 4) @2 lifter
+          , testProperty "ternary" $ compareToSmoothSeries @(DOrder 4) @3 lifter
+          ]
+      , testGroup
+          "DOrder 3 |*| DOrder 4"
+          [ testProperty "unary" $ compareToSmoothSeries @(DOrder 3 |*| DOrder 4) @1 lifter
+          , testProperty "binary" $ compareToSmoothSeries @(DOrder 3 |*| DOrder 4) @2 lifter
+          , testProperty "ternary" $ compareToSmoothSeries @(DOrder 3 |*| DOrder 4) @3 lifter
+          ]
+      , testGroup "R[x,y]/(x^3-y^2,y^3)" $
+          fromJust $
+            reifyWeil
+              (toIdeal [var 0 ^ 3 - var 1 ^ 2, var 1 ^ 3 :: Polynomial AP.Rational 2])
+              $ \(_ :: Proxy w) ->
+                [ testProperty "unary" $ compareToSmoothSeries @w @1 lifter
+                , testProperty "binary" $
+                    forAll (resize 3 arbitrary) $ compareToSmoothSeries @w @2 lifter
+                ]
+      ]
+    | (name, lifter) <-
+        [ ("liftSmoothSeriesAD", WeilLifter liftSmoothSeriesAD)
+        , ("liftSmoothSuccinctTower", WeilLifter liftSmoothSuccinctTower)
         ]
-    , testGroup
-        "D2"
-        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @D2 @1
-        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @D2 @2
-        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @D2 @3
-        ]
-    , testGroup
-        "DOrder 4"
-        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @(DOrder 4) @1
-        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @(DOrder 4) @2
-        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @(DOrder 4) @3
-        ]
-    , testGroup
-        "DOrder 3 |*| DOrder 4"
-        [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @(DOrder 3 |*| DOrder 4) @1
-        , testProperty "binary" $ chkLiftSmoothSeriesEquiv @(DOrder 3 |*| DOrder 4) @2
-        , testProperty "ternary" $ chkLiftSmoothSeriesEquiv @(DOrder 3 |*| DOrder 4) @3
-        ]
-    , testGroup "R[x,y]/(x^3-y^2,y^3)" $
-        fromJust $
-          reifyWeil
-            (toIdeal [var 0 ^ 3 - var 1 ^ 2, var 1 ^ 3 :: Polynomial AP.Rational 2])
-            $ \(_ :: Proxy w) ->
-              [ testProperty "unary" $ chkLiftSmoothSeriesEquiv @w @1
-              , testProperty "binary" $
-                  forAll (resize 3 arbitrary) $ chkLiftSmoothSeriesEquiv @w @2
-              ]
     ]
 
-chkLiftSmoothSeriesEquiv ::
+newtype WeilLifter = WeilLifter
+  { runWeilLifter ::
+      forall k w' n' m'.
+      (KnownNat k, KnownNat n', KnownNat m', Reifies w' (WeilSettings n' m')) =>
+      (forall x. Floating x => Vec k x -> x) ->
+      Vec k (Weil w' Double) ->
+      Weil w' Double
+  }
+
+compareToSmoothSeries ::
   forall w k n m.
   (KnownNat n, KnownNat m, KnownNat k, Reifies w (WeilSettings n m)) =>
+  WeilLifter ->
   TotalExpr k ->
   Vec k (Vec n Double) ->
   Property
-chkLiftSmoothSeriesEquiv (TotalExpr expr) inps =
+compareToSmoothSeries lifter (TotalExpr expr) inps =
   let Weil finitary = liftSmoothSeries @w (evalExpr expr) $ Weil <$> inps
-      Weil series = liftSmoothSeriesAD @w (evalExpr expr) $ Weil <$> inps
+      Weil series = runWeilLifter lifter @k @w (evalExpr expr) $ Weil <$> inps
    in finitary ==~ series
 
 theExpr :: Expr 2

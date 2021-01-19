@@ -49,6 +49,7 @@ module Numeric.Algebra.Smooth.Weil
     -- * Various lifting functions
     liftSmoothSeries,
     liftSmoothSeriesAD,
+    liftSmoothSuccinctTower,
   )
 where
 
@@ -70,7 +71,8 @@ import Algebra.Scalar
 import AlgebraicPrelude
 import Control.DeepSeq
 import Control.Lens
-  ( ifoldMapBy,
+  ( alaf,
+    ifoldMapBy,
     itoList,
     re,
     (:~:) (..),
@@ -83,7 +85,8 @@ import qualified Data.HashMap.Strict as HM
 import qualified Data.Map as M
 import qualified Data.Map.Strict as Map
 import Data.Maybe (fromJust)
-import Data.MonoTraversable (oany, otraverse)
+import Data.MonoTraversable (MonoFoldable (ofoldMap), oany, otraverse)
+import Data.Monoid (Product (Product))
 import Data.Proxy (Proxy (..))
 import qualified Data.Ratio as R
 import Data.Reflection
@@ -117,6 +120,7 @@ import Numeric.Algebra.Smooth.PowerSeries
     injPoly,
     liftPSToPolysViaAD,
   )
+import qualified Numeric.Algebra.Smooth.PowerSeries.SuccinctTower as Tower
 import Numeric.Algebra.Smooth.Types
   ( UVec,
     Vec,
@@ -375,7 +379,6 @@ liftSmoothSeriesAD ::
   , KnownNat k
   , Eq r
   , Floating r
-  , Eq r
   , KnownNat n
   , KnownNat m
   ) =>
@@ -389,6 +392,37 @@ liftSmoothSeriesAD f (vs :: Vec k (Weil s r)) =
           )
           vs
    in toWeil $ liftPSToPolysViaAD f vs'
+
+liftSmoothSuccinctTower ::
+  ( Reifies s (WeilSettings n m)
+  , KnownNat k
+  , Floating r
+  , Eq r
+  , KnownNat n
+  , KnownNat m
+  ) =>
+  (forall x. (Floating x) => Vec k x -> x) ->
+  Vec k (Weil s r) ->
+  Weil s r
+liftSmoothSuccinctTower f (vs :: Reifies s (WeilSettings n m) => Vec k (Weil s r)) =
+  let vs' :: Vec k (Tower.SSeries m r)
+      vs' =
+        SV.map
+          ( Tower.towerFromMap . coerce
+              . Map.mapKeysMonotonic (SV.map fromIntegral)
+              . Map.mapWithKey
+                ((.*) . alaf Product ofoldMap (factorial . fromIntegral))
+              . terms'
+              . weilToPoly
+          )
+          vs
+      WeilSettings {..} = reflect $ Proxy @s
+   in polyToWeil $
+        polynomial' $
+          Map.mapWithKey (flip (P./) . fromInteger . alaf Product ofoldMap (factorial . fromIntegral)) $
+            coerce @_ @(Map (UVec m Int) (WrapFractional r)) $
+              Map.mapKeysMonotonic (SV.map fromIntegral) $
+                Tower.cutoff nonZeroVarMaxPowers $ f vs'
 
 instance
   ( KnownNat m
