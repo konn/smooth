@@ -225,7 +225,7 @@ liftSSeries f df = \case
   NullSeries -> f (constSS 0.0)
   ZSeries a -> ZSeries (f a)
   x@(SSeries a da dus) ->
-    SSeries (f a) (da * df x) (f dus)
+    SSeries (f a) (da * df x) (liftSSeries f df dus)
 
 instance (KnownNat n, Floating a) => Floating (SSeries n a) where
   pi = constSS pi
