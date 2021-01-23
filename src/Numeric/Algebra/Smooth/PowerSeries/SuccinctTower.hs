@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DerivingVia #-}
@@ -10,11 +11,13 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall -Wincomplete-patterns #-}
 {-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
@@ -226,6 +229,86 @@ liftSSeries f df = \case
   ZSeries a -> ZSeries (f a)
   x@(SSeries a da dus) ->
     SSeries (f a) (da * df x) (liftSSeries f df dus)
+
+newtype SmoothFun c k = SmoothFun {runSmooth :: forall x. c x => Vec k x -> x}
+
+{-
+>>> inp1 = towerFromMap $ Map.fromList [(i :< j :< Nil, 2^i * 3^j :: Double) | i <- [0..2], j <- [0..4], even j]
+
+>>> inp1
+SSeries 1.0 (SSeries 2.0 (SSeries 4.0 NullSeries (SSeries 4.0 (SSeries 0.0 (SSeries 36.0 (SSeries 0.0 (SSeries 324.0 NullSeries (ZSeries 324.0)) NullSeries) (ZSeries 36.0)) NullSeries) (ZSeries 4.0))) (SSeries 2.0 (SSeries 0.0 (SSeries 18.0 (SSeries 0.0 (SSeries 162.0 NullSeries (ZSeries 162.0)) NullSeries) (ZSeries 18.0)) NullSeries) (ZSeries 2.0))) (SSeries 1.0 (SSeries 0.0 (SSeries 9.0 (SSeries 0.0 (SSeries 81.0 NullSeries (ZSeries 81.0)) NullSeries) (ZSeries 9.0)) NullSeries) (ZSeries 1.0))
+
+>>> liftNAry @Floating (\(x :< y :< Nil) -> x * y) (SmoothFun (\(x :< y :< Nil) -> y) :< SmoothFun (\(x :< y :< Nil) -> x) :< Nil) (inp1 :< inp1 :< Nil)
+
+-}
+
+liftNAry ::
+  forall c n a m.
+  ( KnownNat n
+  , KnownNat m
+  , Num a
+  , c a
+  , forall x k. (KnownNat k, c x) => c (SSeries k x)
+  ) =>
+  -- | @f@, a @m@-ary function
+  (forall x. c x => Vec m x -> x) ->
+  -- | partial derivatives of @f@, with @i@th element
+  -- is a first-order derivative w.r.t. @i@th variable.
+  Vec m (SmoothFun c m) ->
+  Vec m (SSeries n a) ->
+  SSeries n a
+liftNAry = go @n
+  where
+    go ::
+      forall l.
+      (KnownNat l) =>
+      (forall x. c x => Vec m x -> x) ->
+      Vec m (SmoothFun c m) ->
+      Vec m (SSeries l a) ->
+      SSeries l a
+    go f _ Nil = constSS $ f Nil
+    go f dfs xss =
+      case sing @l of
+        Zero -> ZSeries $ f $ unwrapZSeries <$> xss
+        Succ (k :: SNat k) ->
+          withKnownNat k $
+            SSeries
+              (f $ constTerm <$> xss)
+              ( sum $
+                  SV.zipWithSame
+                    ( \fi gi ->
+                        topDiffed gi * runSmooth fi xss
+                    )
+                    dfs
+                    xss
+              )
+              (go f dfs $ diffOther <$> xss)
+        _ -> error "Impossible"
+
+constTerm :: (KnownNat n, Num a) => SSeries n a -> a
+{-# INLINE constTerm #-}
+constTerm = \case
+  NullSeries -> 0
+  ZSeries a -> a
+  SSeries a _ _ -> a
+
+topDiffed :: SSeries (n + 1) a -> SSeries (n + 1) a
+topDiffed = \case
+  NullSeries -> NullSeries
+  SSeries _ df _ -> df
+  ZSeries {} -> absurd $ succNonCyclic (sing @0) Refl
+
+diffOther :: SSeries (n + 1) a -> SSeries n a
+diffOther = \case
+  NullSeries -> NullSeries
+  SSeries _ _ f -> f
+  ZSeries {} -> absurd $ succNonCyclic (sing @0) Refl
+
+unwrapZSeries :: Num a => SSeries 0 a -> a
+unwrapZSeries NullSeries = 0
+unwrapZSeries (ZSeries a) = a
+unwrapZSeries SSeries {} =
+  absurd $ succNonCyclic (sing @0) Refl
 
 instance (KnownNat n, Floating a) => Floating (SSeries n a) where
   pi = constSS pi

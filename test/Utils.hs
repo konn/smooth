@@ -12,23 +12,30 @@
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 
 module Utils where
 
+import Algebra.Internal (withKnownNat)
 import Control.Subcategory (CFoldable, CFreeMonoid, CZip, Dom)
 import Data.MonoTraversable
 import Data.Reflection (Reifies)
-import Data.Singletons.Prelude (sing)
+import Data.Singletons.Prelude (Sing, sing)
 import Data.Sized.Builtin (Sized)
 import qualified Data.Sized.Builtin as SV
+import Data.Type.Equality
+import Data.Type.Natural (IsPeano (zeroOrSucc))
+import Data.Type.Natural.Class.Arithmetic
 import Data.Type.Ordinal.Builtin
 import qualified Data.Vector.Generic as G
+import Data.Void (absurd)
 import GHC.Exts
 import GHC.Generics
 import GHC.TypeNats
 import Generic.Random hiding ((:+))
 import qualified Generic.Random as GR
 import Numeric.Algebra.Smooth.Dual
+import Numeric.Algebra.Smooth.PowerSeries.SuccinctTower
 import Numeric.Algebra.Smooth.Weil
 import Numeric.Natural
 import Test.QuickCheck
@@ -170,6 +177,25 @@ class ApproxEq a where
   approxEq :: a -> a -> Bool
   approxEq = approxEqWith 1e-6
 
+instance (Num a, ApproxEq a, KnownNat n) => ApproxEq (SSeries n a) where
+  approxEqWith _ NullSeries NullSeries = True
+  approxEqWith eps (ZSeries a) NullSeries = approxEqWith eps a 0
+  approxEqWith eps NullSeries (ZSeries b) = approxEqWith eps b 0
+  approxEqWith eps (ZSeries a) (ZSeries b) = approxEqWith eps a b
+  approxEqWith _ ZSeries {} SSeries {} =
+    absurd $ succNonCyclic (sing @0) Refl
+  approxEqWith _ SSeries {} ZSeries {} =
+    absurd $ succNonCyclic (sing @0) Refl
+  approxEqWith eps (SSeries a da dus) (SSeries b db dvs) =
+    approxEqWith eps a b && approxEqWith eps da db
+      && approxEqWith eps dus dvs
+  approxEqWith eps l@SSeries {} NullSeries =
+    approxEqWith eps NullSeries l
+  approxEqWith eps NullSeries (SSeries a da dus) =
+    approxEqWith eps 0 a
+      && approxEqWith eps NullSeries da
+      && approxEqWith eps NullSeries dus
+
 instance ApproxEq Double where
   approxEqWith err l r
     | isIndefinite l = isIndefinite r
@@ -242,4 +268,29 @@ instance
   Arbitrary (Weil w a)
   where
   arbitrary = Weil <$> arbitrary
-  shrink (Weil as) = Weil <$> (mapM shrink as)
+  shrink (Weil as) = Weil <$> mapM shrink as
+
+-- | N.B. Generates only finite sequences
+instance (KnownNat n, Arbitrary a) => Arbitrary (SSeries n a) where
+  shrink NullSeries = []
+  shrink (ZSeries a) = NullSeries : map ZSeries (shrink a)
+  shrink (SSeries a df dus) =
+    NullSeries : [SSeries a' df' dus' | (a', df', dus') <- shrink (a, df, dus)]
+
+  arbitrary =
+    case zeroOrSucc (sing @n) of
+      IsZero -> frequency [(1, pure NullSeries), (4, ZSeries <$> arbitrary)]
+      IsSucc (k :: Sing k) -> withKnownNat k $
+        sized $ \n ->
+          if n <= 0
+            then pure NullSeries
+            else
+              frequency
+                [
+                  ( 1
+                  , SSeries <$> arbitrary
+                      <*> resize (n - 1) arbitrary
+                      <*> resize (n - 1) arbitrary
+                  )
+                , (1, pure NullSeries)
+                ]
