@@ -158,7 +158,7 @@ packages:
     url: https://github.com/konn/factorials/archive/f4ae86d3ff241258d08663f77b550c945bb65497.tar.gz
 snapshots:
 - completed:
-    size: 562265
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/nightly/2021/1/15.yaml
-    sha256: b1d38ff01a29a9fea75cd8956c2317190ba39d8519106c03d163c387b7b097eb
-  original: nightly-2021-01-15
+    size: 563103
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/17/4.yaml
+    sha256: f11e2153044f5f71ea7b1c9398f4721f517c9bd37642ed769647b896564021f3
+  original: lts-17.4
