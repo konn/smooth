@@ -297,6 +297,8 @@ jobs:
         stack bench smooth:bench:liftWeil-speed --ba "--csv=bench-results/liftWeil-speed.csv"
         stack bench smooth:bench:liftWeil-heap
         stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
+        stack bench smooth:bench:multdiffupto-bench --ba "--csv=bench-results/multdiffupto-speed.csv"
+        stack bench smooth:bench:multdiffupto-heap
 
     - name: Upload benchmark results
       uses: actions/upload-artifact@v2.2.1
