@@ -14,5 +14,7 @@ cradle:
       component: "smooth:bench:diffupto-bench"
     - path: "bench/liftWeil-speed.hs"
       component: "smooth:bench:liftWeil-speed"
+    - path: "bench/multdiffupto-bench.hs"
+      component: "smooth:bench:multdiffupto-bench"
     - path: "bench/liftWeil-heap.hs"
       component: "smooth:bench:liftWeil-heap"

@@ -40,6 +40,7 @@ dependencies:
 - containers
 - foldl
 - halg-algorithms
+- sized
 - profunctors
 - semialign
 - these
@@ -110,6 +111,19 @@ tests:
 benchmarks:
   diffupto-bench:
     main: diffupto-bench.hs
+    source-dirs: bench
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    - -O2
+
+    dependencies:
+    - ad
+    - smooth
+    - gauge
+  multdiffupto-bench:
+    main: multdiffupto-bench.hs
     source-dirs: bench
     ghc-options:
     - -threaded
