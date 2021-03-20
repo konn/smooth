@@ -16,3 +16,7 @@ In this package, we will explore the possibility to extend ADs with higher infin
 [ad]: https://hackage.haskell.org/package/ad
 [SIA]: https://en.wikipedia.org/wiki/Smooth_infinitesimal_analysis
 [SDG]: https://ncatlab.org/nlab/show/synthetic+differential+geometry
+
+## Papers
+* Hiromi Ishii, _Automatic Differentiation With Higher Infinitesimals, or Computational Smooth Infinitesimal Analysis in Weil Algebra_, 2021. Submitted.
+* Hiromi Ishii, _A Succinct Multivariate Lazy Multivariate Tower AD for Weil Algebra Computation_, 2021, in preparation.
