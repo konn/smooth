@@ -38,10 +38,20 @@ main = do
 
 theBench :: Weigh ()
 theBench = do
+  wgroup "identity" $ do
+    forM_ [0 .. 10] $ \n ->
+      wgroup (show n) $ do
+        func "AD" (walkAlong (SV.singleton n) . AD.grads SV.head) (SV.singleton (0.0 :: Double))
+        func "diffs" (take (fromIntegral n + 1) . AD.diffs id) (0.0 :: Double)
+        func
+          "STower"
+          (cutoff (SV.singleton $ fromIntegral n) . allDerivs SV.head)
+          (SV.singleton (0.0 :: Double))
   wgroup "exp x" $ do
     forM_ [0 .. 10] $ \n ->
       wgroup (show n) $ do
         func "AD" (walkAlong (SV.singleton n) . AD.grads (exp . SV.head)) (SV.singleton (0.0 :: Double))
+        func "diffs" (take (fromIntegral n + 1) . AD.diffs exp) (0.0 :: Double)
         func
           "STower"
           (cutoff (SV.singleton $ fromIntegral n) . allDerivs (exp . SV.head))
@@ -54,7 +64,12 @@ theBench = do
       , 2 :< 0 :< Nil
       , 2 :< 1 :< Nil
       , 2 :< 2 :< Nil
+      , 3 :< 2 :< Nil
+      , 4 :< 2 :< Nil
       , 3 :< 4 :< Nil
+      , 5 :< 3 :< Nil
+      , 3 :< 6 :< Nil
+      , 6 :< 4 :< Nil
       ]
       $ \degs -> do
         wgroup (show degs) $ do
@@ -64,11 +79,16 @@ theBench = do
     let f :: Floating x => Vec 3 x -> x
         f (x :< y :< z :< Nil) = sin x * exp (y ^ 2 + z)
     forM_
-      [ 0 :< 1 :< 2 :< Nil
-      , 2 :< 0 :< 1 :< Nil
-      , 2 :< 1 :< 0 :< Nil
+      [ 0 :< 0 :< 1 :< Nil
+      , 1 :< 0 :< 1 :< Nil
+      , 0 :< 1 :< 2 :< Nil
+      , 1 :< 2 :< 1 :< Nil
+      , 0 :< 3 :< 2 :< Nil
       , 2 :< 2 :< 2 :< Nil
-      , 3 :< 4 :< 5 :< Nil
+      , 3 :< 2 :< 2 :< Nil
+      , 3 :< 4 :< 1 :< Nil
+      , 5 :< 3 :< 1 :< Nil
+      , 2 :< 3 :< 5 :< Nil
       ]
       $ \degs -> wgroup (show degs) $ do
         func "AD" (walkAlong degs . AD.grads f) (SV.replicate' (0.0 :: Double))
