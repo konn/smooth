@@ -294,9 +294,9 @@ jobs:
         sudo lshw -class processor > bench-results/processors.txt
         cp /proc/cpuinfo bench-results
         cp /proc/meminfo bench-results
-        # stack bench smooth:bench:liftWeil-speed --ba "--csv=bench-results/liftWeil-speed.csv"
-        # stack bench smooth:bench:liftWeil-heap
-        # stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
+        stack bench smooth:bench:liftWeil-speed --ba "--csv=bench-results/liftWeil-speed.csv"
+        stack bench smooth:bench:liftWeil-heap
+        stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
         stack bench smooth:bench:multdiffupto-bench --ba "--csv=bench-results/multdiffupto-speed.csv"
         stack bench smooth:bench:multdiffupto-heap
 
