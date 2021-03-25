@@ -22,7 +22,7 @@
 module Numeric.Algebra.Smooth.Dual where
 
 import Data.Singletons.TypeLits
-import qualified Data.Sized.Builtin as SV
+import qualified Data.Sized as SV
 import qualified Data.Vector as V
 import Numeric.Algebra.Smooth.Types
 import Numeric.Algebra.Smooth.Weil

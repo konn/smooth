@@ -14,7 +14,7 @@ module Main where
 
 import Data.Foldable (forM_)
 import qualified Data.Sized as SV
-import Data.Sized.Builtin (pattern Nil, pattern (:<))
+import Data.Sized (pattern Nil, pattern (:<))
 import qualified Numeric.AD as AD
 import Numeric.Algebra.Smooth.PowerSeries (walkAlong)
 import Numeric.Algebra.Smooth.PowerSeries.SuccinctTower (allDerivs, cutoff)

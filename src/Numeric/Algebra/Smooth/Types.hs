@@ -1,19 +1,10 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE GADTs #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE MonoLocalBinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 
 module Numeric.Algebra.Smooth.Types (Vec, UVec, convVec) where
 
-import Data.Sized.Builtin (Sized)
-import qualified Data.Sized.Builtin as SV
+import Data.Sized (Sized)
+import qualified Data.Sized as SV
 import Data.Vector (Vector)
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U

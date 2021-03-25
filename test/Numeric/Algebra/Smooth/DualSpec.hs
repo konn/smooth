@@ -20,8 +20,8 @@ import qualified Data.Foldable as F
 import qualified Data.Map as Map
 import Data.Proxy
 import Data.Semialign.Indexed
-import Data.Sized.Builtin (pattern Nil, pattern (:<))
-import qualified Data.Sized.Builtin as SV
+import Data.Sized (pattern Nil, pattern (:<))
+import qualified Data.Sized as SV
 import Data.These
 import qualified Data.Vector as V
 import GHC.TypeNats

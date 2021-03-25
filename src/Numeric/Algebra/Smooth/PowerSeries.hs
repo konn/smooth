@@ -43,21 +43,16 @@ import Data.MonoTraversable
 import Data.Monoid (Product (..))
 import Data.Semialign (alignWith)
 import qualified Data.Sequence as Seq
-import Data.Singletons.Prelude (Sing, SingI (sing))
-import qualified Data.Sized.Builtin as SV
+import qualified Data.Sized as SV
 import Data.These
-import Data.Type.Natural.Class.Arithmetic
-  ( ZeroOrSucc (..),
-    zeroOrSucc,
-  )
-import Data.Type.Natural.Class.Order
-import Data.Type.Ordinal.Builtin (Ordinal, enumOrdinal)
+import Data.Type.Natural
+import Data.Type.Natural.Lemma.Order
+import Data.Type.Ordinal
 import qualified Data.Vector as V
 import qualified Data.Vector.Generic as G
 import qualified Data.Vector.Unboxed as U
 import GHC.Conc (par)
 import GHC.Generics (Generic)
-import GHC.TypeNats (KnownNat)
 import qualified Numeric.AD as AD
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
@@ -177,14 +172,14 @@ diag ::
   , Dom v a
   , CFreeMonoid v
   ) =>
-  SV.Ordinal n ->
+  Ordinal n ->
   SV.Sized v n a
-diag i = SV.generate sing $ \j -> if i == j then 1 else 0
+diag i = SV.generate sNat $ \j -> if i == j then 1 else 0
 
 data MTree m n a
   = Mul !(MTree m n a) !(MTree m n a)
   | Add !(MTree m n a) !(MTree m n a)
-  | DiffArg !(UVec m Word) !(SV.Ordinal n)
+  | DiffArg !(UVec m Word) !(Ordinal n)
   | DiffFun !(UVec n Word)
   | K !a
   deriving (Eq, Ord)
@@ -326,7 +321,7 @@ diffMTree _ K {} = K 0
 diffMTree o (DiffFun pow) =
   sum
     [ DiffFun (pow & ix i +~ 1) * DiffArg (diag o) i
-    | i <- enumOrdinal @n sing
+    | i <- enumOrdinal @n sNat
     ]
 
 injectCoeSer :: Num a => a -> Series a
@@ -422,9 +417,9 @@ monomsOfDeg ::
   forall n. KnownNat n => Word -> [UVec n Word]
 monomsOfDeg 0 = [SV.replicate' 0]
 monomsOfDeg n =
-  case zeroOrSucc (sing @n) of
+  case zeroOrSucc (sNat @n) of
     IsZero -> []
-    IsSucc (_ :: Sing m) ->
+    IsSucc (_ :: SNat m) ->
       concat
         [ map (k SV.<|) $ monomsOfDeg @m (n - k)
         | k <- [0 .. n]
@@ -552,7 +547,7 @@ walkAlong ::
 walkAlong SV.Nil (a Cof.:< SV.Nil) = a
 walkAlong (0 SV.:< (rest :: UVec m Word)) (a :< deep) =
   withWitness
-    (lneqZero $ sing @m)
+    (lneqZero $ sNat @m)
     $ walkAlong
       rest
       (a Cof.:< SV.map (hoistCofree SV.tail) (SV.tail deep))

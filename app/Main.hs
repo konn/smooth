@@ -24,7 +24,7 @@ import Algebra.Ring.Polynomial.Class (PrettyCoeff)
 import Algebra.Ring.Polynomial.Univariate hiding (cutoff)
 import AlgebraicPrelude (WrapNum (..))
 import qualified Data.Sized as SV
-import Data.Sized.Builtin hiding (fmap, (!!))
+import Data.Sized hiding (fmap, (!!))
 import Numeric.Algebra.Smooth
 import Numeric.Algebra.Smooth.Types (UVec, Vec)
 import Numeric.Algebra.Smooth.Weil
@@ -205,7 +205,7 @@ fun x y = exp (2 * x) * sin y
 -}
 
 {-
->>> import Data.Sized.Builtin (pattern Nil, pattern (:<))
+>>> import Data.Sized (pattern Nil, pattern (:<))
 >>> import Numeric.Algebra.Smooth.PowerSeries.SuccinctTower
 >>> import Numeric.Algebra.Smooth
 >>> normalise <$> cutoff (2 :< 3 :< Nil) (allDerivs (\vec -> sin (SV.head vec) * exp (SV.last vec * SV.head vec)) (x :< y :< Nil))

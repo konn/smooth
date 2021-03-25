@@ -6,8 +6,8 @@
 
 module Main where
 
-import Data.Sized.Builtin (pattern Nil, pattern (:<))
-import qualified Data.Sized.Builtin as SV
+import Data.Sized (pattern Nil, pattern (:<))
+import qualified Data.Sized as SV
 import Gauge
 import qualified Numeric.AD as AD
 import Numeric.Algebra.Smooth.PowerSeries (walkAlong)

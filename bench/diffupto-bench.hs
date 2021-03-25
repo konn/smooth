@@ -2,7 +2,7 @@
 
 module Main where
 
-import qualified Data.Sized.Builtin as SV
+import qualified Data.Sized as SV
 import Gauge
 import qualified Numeric.AD as AD
 import Numeric.Algebra.Smooth.PowerSeries.SuccinctTower (allDerivs, cutoff)

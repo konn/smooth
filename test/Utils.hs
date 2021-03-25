@@ -21,12 +21,12 @@ import Control.Subcategory (CFoldable, CFreeMonoid, CZip, Dom)
 import Data.MonoTraversable
 import Data.Reflection (Reifies)
 import Data.Singletons.Prelude (Sing, sing)
-import Data.Sized.Builtin (Sized)
-import qualified Data.Sized.Builtin as SV
+import Data.Sized (Sized)
+import qualified Data.Sized as SV
 import Data.Type.Equality
 import Data.Type.Natural (IsPeano (zeroOrSucc))
 import Data.Type.Natural.Class.Arithmetic
-import Data.Type.Ordinal.Builtin
+import Data.Type.Ordinal
 import qualified Data.Vector.Generic as G
 import Data.Void (absurd)
 import GHC.Exts

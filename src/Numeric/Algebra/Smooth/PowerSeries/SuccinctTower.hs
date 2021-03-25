@@ -19,8 +19,8 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# OPTIONS_GHC -Wall -Wincomplete-patterns #-}
-{-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 {-# OPTIONS_GHC -funbox-strict-fields #-}
 
 module Numeric.Algebra.Smooth.PowerSeries.SuccinctTower where
@@ -32,20 +32,13 @@ import Data.Coerce
 import Data.Map (Map)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
-import Data.Singletons (sing)
-import Data.Singletons.TypeLits (SNat, withKnownNat)
+import Data.Sized (pattern Nil, pattern (:<))
 import qualified Data.Sized as SV
-import Data.Sized.Builtin (pattern Nil, pattern (:<))
 import Data.Type.Equality ((:~:) (Refl))
-import Data.Type.Natural.Class
-  ( IsPeano (succNonCyclic),
-    PNum (type (+)),
-    pattern Succ,
-    pattern Zero,
-  )
+import Data.Type.Natural
+import Data.Type.Natural.Lemma.Arithmetic (succNonCyclic)
 import Data.Type.Ordinal
 import Data.Void (absurd)
-import GHC.TypeNats (KnownNat, Nat, type (<=))
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
 import Numeric.Algebra.Smooth.Types
@@ -160,10 +153,9 @@ deriving via
 
 constSS :: forall n a. (KnownNat n, Num a) => a -> SSeries n a
 constSS a =
-  case sing @n of
+  case sNat @n of
     Zero -> ZSeries a
     Succ (n :: SNat m) -> withKnownNat n $ SSeries a NullSeries (constSS @m a)
-    _ -> error "Could not happen"
 
 extractCoe :: Num a => SSeries n a -> a
 extractCoe NullSeries = 0
@@ -185,16 +177,16 @@ instance (Num a, KnownNat n) => Num (SSeries n a) where
   ZSeries a + ZSeries b = ZSeries (a + b)
   SSeries a da dus + SSeries b db dvs =
     SSeries (a + b) (da + db) (dus + dvs)
-  ZSeries {} + SSeries {} = absurd $ succNonCyclic (sing @n) Refl
-  SSeries {} + ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
+  ZSeries {} + SSeries {} = absurd $ succNonCyclic (sNat @n) Refl
+  SSeries {} + ZSeries {} = absurd $ succNonCyclic (sNat @n) Refl
 
   NullSeries - a = negate a
   a - NullSeries = a
   ZSeries a - ZSeries b = ZSeries (a - b)
   SSeries a da dus - SSeries b db dvs =
     SSeries (a - b) (da - db) (dus - dvs)
-  ZSeries {} - SSeries {} = absurd $ succNonCyclic (sing @n) Refl
-  SSeries {} - ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
+  ZSeries {} - SSeries {} = absurd $ succNonCyclic (sNat @n) Refl
+  SSeries {} - ZSeries {} = absurd $ succNonCyclic (sNat @n) Refl
 
   negate NullSeries = NullSeries
   negate (ZSeries a) = ZSeries $ negate a
@@ -205,8 +197,8 @@ instance (Num a, KnownNat n) => Num (SSeries n a) where
   ZSeries a * ZSeries b = ZSeries $ a * b
   l@(SSeries a da dus) * r@(SSeries b db dvs) =
     SSeries (a * b) (l * db + da * r) (dus * dvs)
-  ZSeries {} * SSeries {} = absurd $ succNonCyclic (sing @n) Refl
-  SSeries {} * ZSeries {} = absurd $ succNonCyclic (sing @n) Refl
+  ZSeries {} * SSeries {} = absurd $ succNonCyclic (sNat @n) Refl
+  SSeries {} * ZSeries {} = absurd $ succNonCyclic (sNat @n) Refl
 
 instance (KnownNat n, Fractional a) => Fractional (SSeries n a) where
   fromRational 0 = NullSeries
@@ -268,7 +260,7 @@ liftNAry = go @n
       SSeries l a
     go f _ Nil = constSS $ f Nil
     go f dfs xss =
-      case sing @l of
+      case sNat @l of
         Zero -> ZSeries $ f $ unwrapZSeries <$> xss
         Succ (k :: SNat k) ->
           withKnownNat k $
@@ -283,7 +275,6 @@ liftNAry = go @n
                     xss
               )
               (go f dfs $ diffOther <$> xss)
-        _ -> error "Impossible"
 
 constTerm :: (KnownNat n, Num a) => SSeries n a -> a
 {-# INLINE constTerm #-}
@@ -296,19 +287,19 @@ topDiffed :: SSeries (n + 1) a -> SSeries (n + 1) a
 topDiffed = \case
   NullSeries -> NullSeries
   SSeries _ df _ -> df
-  ZSeries {} -> absurd $ succNonCyclic (sing @0) Refl
+  ZSeries {} -> absurd $ succNonCyclic (sNat @0) Refl
 
 diffOther :: SSeries (n + 1) a -> SSeries n a
 diffOther = \case
   NullSeries -> NullSeries
   SSeries _ _ f -> f
-  ZSeries {} -> absurd $ succNonCyclic (sing @0) Refl
+  ZSeries {} -> absurd $ succNonCyclic (sNat @0) Refl
 
 unwrapZSeries :: Num a => SSeries 0 a -> a
 unwrapZSeries NullSeries = 0
 unwrapZSeries (ZSeries a) = a
 unwrapZSeries SSeries {} =
-  absurd $ succNonCyclic (sing @0) Refl
+  absurd $ succNonCyclic (sNat @0) Refl
 
 instance (KnownNat n, Floating a) => Floating (SSeries n a) where
   pi = constSS pi
@@ -346,7 +337,7 @@ asNth' ::
   (KnownNat k, KnownNat n, (k + 1) <= n, Num a) =>
   a ->
   SSeries n a
-asNth' a = go (sing @k) (sing @n)
+asNth' a = go (sNat @k) (sNat @n)
   where
     go ::
       forall l m.
@@ -391,7 +382,7 @@ cutoff = go 0
             `Map.union` Map.mapKeysMonotonic (n :<) (go 0 ubs dus)
       where
         pow = n :< SV.replicate' 0
-    go _ Nil SSeries {} = absurd $ succNonCyclic (sing @1) Refl
+    go _ Nil SSeries {} = absurd $ succNonCyclic (sNat @1) Refl
 
 -- >>> allDerivs (\(x SV.:< y SV.:< SV.Nil) -> x ^ 2 * y) (3 SV.:< 2 SV.:< SV.Nil)
 -- SSeries 18 (SSeries 12 (SSeries 4 NullSeries (SSeries 4 (SSeries 2 NullSeries (ZSeries 2)) (ZSeries 4))) (SSeries 12 (SSeries 6 NullSeries (ZSeries 6)) (ZSeries 12))) (SSeries 18 (SSeries 9 NullSeries (ZSeries 9)) (ZSeries 18))

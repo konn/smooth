@@ -28,12 +28,12 @@ import Data.Proxy
 import Data.Reflection
 import Data.Semialign.Indexed
 import Data.Singletons.Prelude (sing)
-import Data.Sized.Builtin
+import Data.Sized
   ( (%!!),
     pattern Nil,
     pattern (:<),
   )
-import qualified Data.Sized.Builtin as SV
+import qualified Data.Sized as SV
 import Data.These
 import qualified Data.Vector as V
 import GHC.Exts (proxy#)

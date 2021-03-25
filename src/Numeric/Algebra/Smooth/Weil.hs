@@ -20,9 +20,9 @@
 {-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE NoStarIsType #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
-{-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.Normalise #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 
 module Numeric.Algebra.Smooth.Weil
   ( Weil (Weil),
@@ -55,7 +55,6 @@ where
 
 import Algebra.Algorithms.Groebner.Signature.Rules ()
 import Algebra.Algorithms.ZeroDim (univPoly, vectorRep)
-import Algebra.Prelude.Core (SNat, ordToNatural)
 import Algebra.Ring.Ideal
   ( Ideal,
     toIdeal,
@@ -75,7 +74,6 @@ import Control.Lens
     ifoldMapBy,
     itoList,
     re,
-    (:~:) (..),
     (^.),
   )
 import Data.Coerce (coerce)
@@ -93,19 +91,15 @@ import Data.Reflection
   ( Reifies (..),
     reify,
   )
-import Data.Singletons.Decide (decideEquality)
-import Data.Singletons.Prelude (sing)
-import Data.Singletons.TypeLits (withKnownNat)
 import Data.Sized
   ( pattern Nil,
     pattern (:<),
   )
-import qualified Data.Sized.Builtin as SV
-import Data.Type.Equality ()
-import Data.Type.Ordinal.Builtin (enumOrdinal)
+import qualified Data.Sized as SV
+import Data.Type.Natural
+import Data.Type.Ordinal
 import qualified Data.Vector as V
 import GHC.Exts (proxy#)
-import GHC.TypeNats as TN
 import Math.NumberTheory.Factorial.Swing.Recursion (factorial)
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Classes
@@ -153,7 +147,7 @@ pattern Weil ::
   Vec n r ->
   Weil s r
 pattern Weil v <-
-  Weil_ (SV.toSized' @_ @_ @n -> Just v)
+  Weil_ (SV.unsafeToSized' @_ @n -> v)
   where
     Weil v = Weil_ (SV.unsized @_ @n v)
 
@@ -280,7 +274,7 @@ injCoeWeil ::
 injCoeWeil a =
   Weil $
     SV.generate
-      sing
+      sNat
       (\i -> if i == 0 then a else 0)
 
 instance
@@ -498,7 +492,7 @@ weilToPoly (Weil cs) =
 -}
 ei ::
   (Num r, Reifies s (WeilSettings m n), KnownNat n, KnownNat m) =>
-  SV.Ordinal m ->
+  Ordinal m ->
   Weil s r
 ei ord = Weil $ diag ord
 
@@ -508,12 +502,12 @@ basisWeil ::
   (Reifies s (WeilSettings m n), KnownNat n, KnownNat m, Num r) =>
   [Weil s r]
 basisWeil =
-  [Weil $ diag i | i <- enumOrdinal $ sing @m]
+  [Weil $ diag i | i <- enumOrdinal $ sNat @m]
 
 -- | @i@ th infinitesimal of Weil algebra.
 di ::
   (Eq r, Num r, Reifies s (WeilSettings m n), Fractional r, KnownNat n, KnownNat m) =>
-  SV.Ordinal n ->
+  Ordinal n ->
   Weil s r
 di = polyToWeil . var
 
@@ -586,7 +580,7 @@ instance
     showsPolynomialWith'
       False
       showsCoeff
-      ( SV.generate sing $ \i ->
+      ( SV.generate sNat $ \i ->
           "d(" ++ show (fromEnum i) ++ ")"
       )
       d
@@ -641,7 +635,7 @@ isWeil ps = reifyQuotient ps $ \(p :: Proxy s) -> do
           , let c = quotRepr $ modIdeal' p (fromMonomial m * fromMonomial n)
           , c /= 0
           ]
-      pgens = SV.generate sing $ \i -> univPoly i ps
+      pgens = SV.generate sNat $ \i -> univPoly i ps
       nonZeroVarMaxPowers =
         convVec @_ @V.Vector $
           SV.map (fromIntegral . pred . totalDegree') pgens
@@ -796,8 +790,9 @@ instance Reifies D2 (WeilSettings 3 2) where
     fromJust $ do
       SomeWeil (sett :: WeilSettings n 2) <-
         isWeil $ toIdeal [var 0 ^ 2, var 1 ^ 2, var 0 * var 1 :: Polynomial Rational 2]
-      Refl <- decideEquality (sing @3) (sing @n)
-      return sett
+      case (sNat @3) %~ (sNat @n) of
+        Equal -> return sett
+        _ -> Nothing
 
 {- | Tensor Product.
 
@@ -835,7 +830,7 @@ instance
             nonZeroVarMaxPowers weil SV.++ nonZeroVarMaxPowers weil'
           tab =
             HM.fromList
-              [ ((i, j), castPolynomial pl * shiftR (sing @m) pr)
+              [ ((i, j), castPolynomial pl * shiftR (sNat @m) pr)
               | j <- [0 .. n * n' - 1]
               , i <- [0 .. j]
               , let (il, ir) = i `P.divMod` n'
@@ -855,7 +850,7 @@ instance
                   | (lh, SV.unsized -> lCoes) <- HM.toList $ weilMonomDic weil
                   , (rh, SV.unsized -> rCoes) <- HM.toList $ weilMonomDic weil'
                   , let mon = lh SV.++ rh
-                        coes = SV.generate sing $ \od ->
+                        coes = SV.generate sNat $ \od ->
                           let (l, r) = fromIntegral (ordToNatural od) `P.divMod` n'
                            in (lCoes V.! l) * (rCoes V.! r)
                   , oany (/= 0) coes
@@ -871,7 +866,7 @@ instance Reifies Cubic (WeilSettings 3 1) where
     fromJust $ do
       SomeWeil (sett :: WeilSettings n 1) <-
         isWeil $ toIdeal [var 0 ^ 3 :: Polynomial Rational 1]
-      Refl <- decideEquality (sing @3) (sing @n)
+      Equal <- pure $ (sNat @3) %~ (sNat @n)
       return sett
 
 -- | @'DOrder' n@ corresponds to \(\mathbb{R}[X]/X^n\).
@@ -882,13 +877,13 @@ instance KnownNat n => Reifies (DOrder n) (WeilSettings n 1) where
     const $
       let n = fromIntegral (natVal' @n proxy#)
        in WeilSettings
-            { weilBasis = SV.generate (sing @n) (SV.singleton . toEnum . fromEnum)
+            { weilBasis = SV.generate (sNat @n) (SV.singleton . toEnum . fromEnum)
             , weilMonomDic =
                 HM.fromList
                   [ ( SV.singleton $ fromIntegral $ ordToNatural i
                     , diag i
                     )
-                  | i <- enumOrdinal $ sing @n
+                  | i <- enumOrdinal $ sNat @n
                   ]
             , nonZeroVarMaxPowers = SV.singleton $ n - 1
             , table =

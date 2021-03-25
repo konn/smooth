@@ -36,7 +36,7 @@ packages:
 #
 extra-deps:
   - github: konn/computational-algebra
-    commit: 4a04c6db48aa22e337e4e3c9845a0c522061d264
+    commit: c0ec6db4da2d1cf3e12f29c7941504be3a0fd81e
     subdirs:
       - algebraic-prelude
       - halg-core
@@ -45,10 +45,10 @@ extra-deps:
       - halg-matrices
       - halg-algorithms
   - algebra-4.3.1@rev:2
-  - ghc-typelits-presburger-0.4.0.0
-  - singletons-presburger-0.4.0.0
-  - type-natural-0.9.0.0@rev:1
-  - sized-0.9.0.0@rev:1
+  - ghc-typelits-presburger-0.6.0.0
+  - singletons-presburger-0.6.0.0
+  - type-natural-1.1.0.0
+  - sized-1.0.0.0
   - control-monad-loop-0.1
   - unamb-0.2.7
   - repa-3.4.1.4@rev:7

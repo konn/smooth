@@ -10,14 +10,13 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeFamilies #-}
-{-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
-{-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
+{-# OPTIONS_GHC -fplugin GHC.TypeLits.Presburger #-}
 
 module Numeric.Algebra.Smooth.Classes where
 
 import qualified AlgebraicPrelude as AP
-import Data.Sized.Builtin (pattern Nil, pattern (:<))
-import qualified Data.Sized.Builtin as SV
+import Data.Sized (pattern Nil, pattern (:<))
+import qualified Data.Sized as SV
 import GHC.TypeNats
 import qualified Numeric.Algebra as NA
 import Numeric.Algebra.Smooth.Types
