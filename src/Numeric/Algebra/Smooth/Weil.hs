@@ -214,6 +214,12 @@ deriving via
     Ring (Weil s r)
 
 deriving via
+  WrapFractional (Weil s r)
+  instance
+    (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
+    Division (Weil s r)
+
+deriving via
   WrapNum (Weil s r)
   instance
     (KnownNat m, KnownNat n, Eq r, Floating r, Reifies s (WeilSettings n m)) =>
