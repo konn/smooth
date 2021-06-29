@@ -18,5 +18,9 @@ In this package, we will explore the possibility to extend ADs with higher infin
 [SDG]: https://ncatlab.org/nlab/show/synthetic+differential+geometry
 
 ## Papers
-* Hiromi Ishii, _Automatic Differentiation With Higher Infinitesimals, or Computational Smooth Infinitesimal Analysis in Weil Algebra_, 2021. Submitted.
-* Hiromi Ishii, _A Succinct Multivariate Lazy Multivariate Tower AD for Weil Algebra Computation_, 2021, in preparation.
+
+* Hiromi ISHII, "*Automatic Differentiation With Higher Infinitesimals, or Computational Smooth Infinitesimal Analysis in Weil Algebra*", Computer Algebra in Scientific Computation 2021, 2021, to appear. ([arxiv:2106.14153](https://arxiv.org/abs/2106.14153))
+* Hiromi Ishii, "*[A Succinct Multivariate Lazy Multivariate Tower AD for Weil Algebra Computation](RIMSca2021-rims)*", Computer Algebra – Theory and its Applications, RIMS Kôkyûroku No. 2185 (2021), pp. 104-112. ([arxiv:2103.11615](RIMSca2021-arxiv))
+
+[RIMSca2021-rims]: https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/2185.html
+[RIMSca2021-arxiv]: https://arxiv.org/abs/2103.11615
