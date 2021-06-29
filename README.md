@@ -83,3 +83,4 @@ Just (0.5438504802710591*X_0*X_1^2 - 0.7309651891796508*X_0^2 + 0.84404589748223
 If you use LSP-supported editors, you can use haskell-language-server's Eval plugin.
 It allows you to evaluate repl lines (comment string starting with `>>>`) embedded in Haskell code.
 Due to the GHC's bug, it might fail with GHC >= 8.10.3, 8.10.4; so I recommend you to use GHC 8.10.5.
+(If you don't get the meaning of this instruction, we recommend to use REPL.)
