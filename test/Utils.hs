@@ -20,12 +20,11 @@ import Algebra.Internal (withKnownNat)
 import Control.Subcategory (CFoldable, CFreeMonoid, CZip, Dom)
 import Data.MonoTraversable
 import Data.Reflection (Reifies)
-import Data.Singletons.Prelude (Sing, sing)
 import Data.Sized (Sized)
 import qualified Data.Sized as SV
 import Data.Type.Equality
-import Data.Type.Natural (IsPeano (zeroOrSucc))
-import Data.Type.Natural.Class.Arithmetic
+import Data.Type.Natural (SNat, sNat)
+import Data.Type.Natural.Lemma.Arithmetic
 import Data.Type.Ordinal
 import qualified Data.Vector.Generic as G
 import Data.Void (absurd)
@@ -93,7 +92,7 @@ instance
 instance (KnownNat n) => Arbitrary (Ordinal n) where
   arbitrary
     | natVal' @n proxy# == 0 = elements []
-    | otherwise = elements $ enumOrdinal @n sing
+    | otherwise = elements $ enumOrdinal @n sNat
   shrink =
     map toEnum
       . filter (\i -> fromIntegral i < natVal' @n proxy# && 0 <= i)
@@ -183,9 +182,9 @@ instance (Num a, ApproxEq a, KnownNat n) => ApproxEq (SSeries n a) where
   approxEqWith eps NullSeries (ZSeries b) = approxEqWith eps b 0
   approxEqWith eps (ZSeries a) (ZSeries b) = approxEqWith eps a b
   approxEqWith _ ZSeries {} SSeries {} =
-    absurd $ succNonCyclic (sing @0) Refl
+    absurd $ succNonCyclic (sNat @0) Refl
   approxEqWith _ SSeries {} ZSeries {} =
-    absurd $ succNonCyclic (sing @0) Refl
+    absurd $ succNonCyclic (sNat @0) Refl
   approxEqWith eps (SSeries a da dus) (SSeries b db dvs) =
     approxEqWith eps a b && approxEqWith eps da db
       && approxEqWith eps dus dvs
@@ -278,9 +277,9 @@ instance (KnownNat n, Arbitrary a) => Arbitrary (SSeries n a) where
     NullSeries : [SSeries a' df' dus' | (a', df', dus') <- shrink (a, df, dus)]
 
   arbitrary =
-    case zeroOrSucc (sing @n) of
+    case zeroOrSucc (sNat @n) of
       IsZero -> frequency [(1, pure NullSeries), (4, ZSeries <$> arbitrary)]
-      IsSucc (k :: Sing k) -> withKnownNat k $
+      IsSucc (k :: SNat k) -> withKnownNat k $
         sized $ \n ->
           if n <= 0
             then pure NullSeries

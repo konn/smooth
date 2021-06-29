@@ -13,8 +13,8 @@
 {-# OPTIONS_GHC -fplugin GHC.TypeLits.KnownNat.Solver #-}
 
 module Numeric.Algebra.Smooth.WeilSpec where
-
-import Algebra.Prelude.Core (IsPolynomial (terms', var), Polynomial, SNat, toIdeal, withKnownNat)
+  
+import Algebra.Prelude.Core (IsPolynomial (terms', var), Polynomial, SNat, toIdeal, withKnownNat, sNat)
 import qualified Algebra.Prelude.Core as AP
 import AlgebraicPrelude (WrapFractional (WrapFractional))
 import Control.Lens (alaf)
@@ -27,7 +27,6 @@ import Data.Monoid (Product (Product))
 import Data.Proxy
 import Data.Reflection
 import Data.Semialign.Indexed
-import Data.Singletons.Prelude (sing)
 import Data.Sized
   ( (%!!),
     pattern Nil,
@@ -152,7 +151,7 @@ prop_Weil_DOrder_n_computes_upto_n_minus_1st_derivative =
                     liftUnary @(Weil (DOrder (n + 1)) Double)
                       f
                       ( Weil $
-                          SV.generate sing $
+                          SV.generate sNat $
                             \i ->
                               if i == 0
                                 then a
@@ -205,11 +204,11 @@ test_WeilProduct :: TestTree
 test_WeilProduct =
   testGroup
     "Weil (Dn |*| Dk)"
-    [ testProperty "D2 |*| D3" $ chkWeilProduct (sing @2) (sing @3)
-    , testProperty "D3 |*| D2" $ chkWeilProduct (sing @3) (sing @2)
-    , testProperty "D2 |*| D4" $ chkWeilProduct (sing @2) (sing @4)
-    , testProperty "D4 |*| D5" $ chkWeilProduct (sing @4) (sing @5)
-    , testProperty "D4 |*| D5 (regression)" $ chkWeilProduct (sing @4) (sing @5) (TotalExpr theExpr)
+    [ testProperty "D2 |*| D3" $ chkWeilProduct (sNat @2) (sNat @3)
+    , testProperty "D3 |*| D2" $ chkWeilProduct (sNat @3) (sNat @2)
+    , testProperty "D2 |*| D4" $ chkWeilProduct (sNat @2) (sNat @4)
+    , testProperty "D4 |*| D5" $ chkWeilProduct (sNat @4) (sNat @5)
+    , testProperty "D4 |*| D5 (regression)" $ chkWeilProduct (sNat @4) (sNat @5) (TotalExpr theExpr)
     , testProperty "D2 |*| D3 |*| D4" $ \(TotalExpr expr :: TotalExpr 3) (x :: Double) y z ->
         let f :: forall x. Floating x => Vec 3 x -> x
             f = evalExpr expr
@@ -220,7 +219,7 @@ test_WeilProduct =
                 [ (SV.map fromIntegral deg, walkAlong deg table)
                 | deg <-
                     otraverse (enumFromTo 0) $
-                      SV.unsafeFromList' @_ @_ @3 [1, 2, 3]
+                      SV.unsafeFromList' @_ @3 [1, 2, 3]
                 ]
             result =
               M.mapMaybe

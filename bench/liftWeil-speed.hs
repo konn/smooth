@@ -8,7 +8,7 @@
 
 module Main where
 
-import Algebra.Prelude.Core (Polynomial, SingI (sing), ordToNatural, toIdeal, var)
+import Algebra.Prelude.Core (sNat, Polynomial, SingI (sing), ordToNatural, toIdeal, var)
 import qualified AlgebraicPrelude as AP
 import Control.Exception (evaluate)
 import Data.Maybe (fromJust)
@@ -85,8 +85,8 @@ benchFor title =
                   ]
         ]
     | (lab, input) <-
-        [ ("sparse", SV.generate sing $ \o -> if o == 0 then 1 else 0.0 :: Double)
-        , ("x + d", SV.generate sing $ \o -> if o == 0 || o == 1 then 1 else 0.0 :: Double)
-        , ("dense", SV.generate sing $ \o -> fromIntegral (ordToNatural o) + 1)
+        [ ("sparse", SV.generate sNat $ \o -> if o == 0 then 1 else 0.0 :: Double)
+        , ("x + d", SV.generate sNat $ \o -> if o == 0 || o == 1 then 1 else 0.0 :: Double)
+        , ("dense", SV.generate sNat $ \o -> fromIntegral (ordToNatural o) + 1)
         ]
     ]

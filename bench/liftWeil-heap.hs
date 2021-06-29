@@ -10,7 +10,7 @@
 
 module Main where
 
-import Algebra.Prelude.Core (Polynomial, SingI (sing), ordToNatural, toIdeal, var)
+import Algebra.Prelude.Core (Polynomial, ordToNatural, sNat, toIdeal, var)
 import qualified AlgebraicPrelude as AP
 import Control.DeepSeq (force)
 import Data.Foldable (forM_, sequenceA_)
@@ -92,7 +92,7 @@ benchFor title = wgroup title $
   where
     inputs :: [(String, SV.Sized V.Vector n Double)]
     inputs =
-      [ ("sparse", SV.generate sing $ \o -> if o == 0 then 1 else 0.0)
-      , ("x + d", SV.generate sing $ \o -> if o == 0 || o == 1 then 1 else 0.0)
-      , ("dense", SV.generate sing $ \o -> fromIntegral (ordToNatural o) + 1)
+      [ ("sparse", SV.generate sNat $ \o -> if o == 0 then 1 else 0.0)
+      , ("x + d", SV.generate sNat $ \o -> if o == 0 || o == 1 then 1 else 0.0)
+      , ("dense", SV.generate sNat $ \o -> fromIntegral (ordToNatural o) + 1)
       ]
