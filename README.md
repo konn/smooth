@@ -24,3 +24,53 @@ In this package, we will explore the possibility to extend ADs with higher infin
 
 [RIMSca2021-rims]: https://www.kurims.kyoto-u.ac.jp/~kyodo/kokyuroku/contents/2185.html
 [RIMSca2021-arxiv]: https://arxiv.org/abs/2103.11615
+
+## How to Play with?
+First, you need to setup Haskell environment.
+Although you can use `cabal-install`, we recommend to use [stack](https://haskellstack.com) as it is the tool we use officially to develop this project.
+
+First, compile all the dependencies once:
+
+```sh
+$ cd smooth
+$ stack build
+```
+
+Then, you have two options to play with: REPL and HLS.
+
+### Playing with REPL
+If you want to run the examples in `app/Main.hs`, you can specify the target explicitly by:
+
+```sh
+$ stack ghci smooth:exe:smooth-exe
+```
+
+If you want to play directly with library, you can invoke:
+
+```sh
+$ stack ghci smooth:exe:smooth-exe --no-load
+```
+
+Then import and feed whatever you want:
+
+```haskell
+>>> import Numeric.Algebra.Smooth
+>>> import Numeric.Algebra.Smooth.Weil
+
+# Setting needed extensions:
+>>> :set -Wno-type-defaults -XDataKinds -XPolyKinds -XGADTs -XTypeOperators
+
+>>> diffUpTo 5 (\x -> sin (x/2) * exp (x^2)) (pi/4)
+fromList [(0,0.7091438342369428),(1,1.9699328611326816),(2,5.679986037666626),(3,19.85501973096302),(4,73.3133870997595),(5,299.9934189752827)]
+
+>>> sin (x + di 0) * exp (y + di 1) :: Weil (DOrder 2 |*| DOrder 3) Double
+1.233936338258819 d(0) d(1)^2 + 2.467872676517638 d(0) d(1) 
+  + 0.7124134770565902 d(1)^2 + 2.467872676517638 d(0) 
+  + 1.4248269541131804 d(1) + 1.4248269541131804
+```
+
+
+### Playing with Haskell Language Server
+If you use LSP-supported editors, you can use haskell-language-server's Eval plugin.
+It allows you to evaluate repl lines (comment string starting with `>>>`) embedded in Haskell code.
+Due to the GHC's bug, it might fail with GHC >= 8.10.3, 8.10.4; so I recommend you to use GHC 8.10.5.
