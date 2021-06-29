@@ -14,7 +14,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
-{-# OPTIONS_GHC -Wno-orphans -Wno-unused-imports #-}
+{-# OPTIONS_GHC -Wno-orphans -Wno-type-defaults -Wno-unused-imports #-}
 {-# OPTIONS_GHC -fplugin Data.Singletons.TypeNats.Presburger #-}
 
 module Main where
@@ -23,8 +23,8 @@ import Algebra.Prelude.Core as AP hiding ((*), (+), (-), (/), (^))
 import Algebra.Ring.Polynomial.Class (PrettyCoeff)
 import Algebra.Ring.Polynomial.Univariate hiding (cutoff)
 import AlgebraicPrelude (WrapNum (..))
-import qualified Data.Sized as SV
 import Data.Sized hiding (fmap, (!!))
+import qualified Data.Sized as SV
 import Numeric.Algebra.Smooth
 import Numeric.Algebra.Smooth.Types (UVec, Vec)
 import Numeric.Algebra.Smooth.Weil
@@ -32,10 +32,11 @@ import Symbolic
 import Prelude ((*), (+), (-), (/), (^))
 import qualified Prelude as P
 
--- * 高階微分の例
+-- * Examples of Higher-order derivatives
 
--- f = exp x * sin x の4階までの微分係数を求めてみる。
+-- Let's calculate the derivatives of f x = exp x * sin x up to the fourth.
 
+-- Here, f', f'2, ..., f'4 are _manually_ calculated derivative of @f@.
 f, f', f'2, f'3, f'4 :: (Floating x) => x -> x
 f x = exp x * sin x
 f' x = exp x * sin x + exp x * cos x
@@ -43,51 +44,47 @@ f'2 x = 2 * exp x * cos x
 f'3 x = 2 * (exp x * cos x - exp x * sin x)
 f'4 x = -4 * f x
 
--- まず pi/6 までの微分係数を計算しておく
+{-
+Let's alcualte the differential coefficients at pi/6 up to fourth, manually.:
 
--- >>> AP.map ($ pi/6) [f, f', f'2, f'3, f'4]
--- [0.8440458974822341,2.305976275841536,2.9238607567186037,1.2357689617541354,-3.3761835899289365]
+>>> AP.map ($ pi/6) [f, f', f'2, f'3, f'4]
+[0.8440458974822341,2.305976275841536,2.9238607567186037,1.2357689617541354,-3.3761835899289365]
 
--- >>> f (pi/6 + dn @0 + dn @1 + dn @2 + dn @3) :: Duals 4 Double
--- 0.8440458974822341 + 2.305976275841536 d(0) + 2.9238607567186037 d(0)d(1) + 1.2357689617541352 d(0)d(1)d(2) + (-3.376183589928937) d(0)d(1)d(2)d(3) + 1.2357689617541352 d(0)d(1)d(3) + 2.9238607567186037 d(0)d(2) + 1.2357689617541352 d(0)d(2)d(3) + 2.9238607567186037 d(0)d(3) + 2.305976275841536 d(1) + 2.9238607567186037 d(1)d(2) + 1.2357689617541352 d(1)d(2)d(3) + 2.9238607567186037 d(1)d(3) + 2.305976275841536 d(2) + 2.9238607567186037 d(2)d(3) + 2.305976275841536 d(3)
+Then we calculate it using multiple dual numbers (by Theorem 2):
 
--- 上のD(2)^n を使って計算する関数が次：
+>>> f (pi/6 + di 0 + di 1 + di 2 + di 3) :: Weil (Duals 4) Double
+-3.3761835899289347 d(0) d(1) d(2) d(3) + 1.2357689617541352 d(0) d(1) d(2) + 1.2357689617541352 d(0) d(1) d(3) + 1.2357689617541352 d(0) d(2) d(3) + 1.2357689617541352 d(1) d(2) d(3) + 2.9238607567186037 d(0) d(1) + 2.9238607567186037 d(0) d(2) + 2.9238607567186037 d(1) d(2) + 2.9238607567186037 d(0) d(3) + 2.9238607567186037 d(1) d(3) + 2.9238607567186037 d(2) d(3) + 2.305976275841536 d(0) + 2.305976275841536 d(1) + 2.305976275841536 d(2) + 2.305976275841536 d(3) + 0.8440458974822341
 
--- >>> diffUpTo 4 f $ pi/6
--- fromList [(0,0.8440458974822341),(1,2.305976275841536),(2,2.9238607567186037),(3,1.2357689617541352),(4,-3.376183589928937)]
+As stated in the paper, repeating dual numbers has bad time- and space-complexity (it grows exponentially!).
+We can use R[X]/(X^{n+1}) instead (Lemma 2):
 
--- 記号微分を入れてみる
--- >>> normalise <$> diffUpTo 4 f x
--- fromList [(0,exp x * sin x),(1,exp x * cos x + exp x * sin x),(2,exp x * (- (sin x)) + exp x * cos x + exp x * cos x + exp x * sin x),(3,exp x * (- (cos x)) + exp x * (- (sin x)) + exp x * (- (sin x)) + exp x * cos x + exp x * (- (sin x)) + exp x * cos x + exp x * cos x + exp x * sin x),(4,exp x * sin x + exp x * (- (cos x)) + exp x * (- (cos x)) + exp x * (- (sin x)) + exp x * (- (cos x)) + exp x * (- (sin x)) + exp x * (- (sin x)) + exp x * cos x + exp x * (- (cos x)) + exp x * (- (sin x)) + exp x * (- (sin x)) + exp x * cos x + exp x * (- (sin x)) + exp x * cos x + exp x * cos x + exp x * sin x)]
+>>> f (pi/6 + di 0) :: Weil (DOrder 4) Double
+0.20596149362568922 d(0)^3 + 1.4619303783593018 d(0)^2 + 2.305976275841536 d(0) + 0.8440458974822341
 
--- * 一般の Weil代数
+Note that R[X]/(X^{n+1}) gives the @k@ th coefficient modulo \(1/k!\).
 
--- 試しに R[e] = R[X]/(X^4) の剰余環計算に必要な情報を集めてみる
+The 'diffUpTo' function indeed using this approach:
 
-idealX4 :: Ideal (Polynomial AP.Rational 1)
-idealX4 = toIdeal [var 0 ^ 4]
+>>> diffUpTo 4 f $ pi/6
+fromList [(0,0.8440458974822341),(1,2.305976275841536),(2,2.9238607567186037),(3,1.2357689617541352),(4,-3.3761835899289365)]
+-}
 
--- >>> isWeil idealX4
--- Just (SomeWeil (WeilSettings {weilBasis = [[0],[1],[2],[3]], nonZeroVarMaxPowers = [3], weilMonomDic = fromList [([0],[1,0,0,0]),([1],[0,1,0,0]),([2],[0,0,1,0]),([3],[0,0,0,1])], table = fromList [((0,0),1),((0,1),X_0),((1,2),X_0^3),((0,2),X_0^2),((1,1),X_0^2),((0,3),X_0^3)]}))
+-- * Symbolic Computation and Autoamtic differentiation
 
--- 若干見づらいが、基底は e^0 (=1), e^1, e^2, e^3 で最大次数は (3),
--- そして乗算表が手に入っている（今回の場合は自明だけど……）
+{-
+As our implementation is polymorphic enough, we can "recover" symbolic differentiation by feeding 'Symbolic' type into automatic differentiation!
 
--- これを使って、3階微分までの値が計算出来るかを見てみよう。
+>>> normalise <$> diffUpTo 4 f x
+fromList [(0,exp x * sin x),(1,exp x * cos x + exp x * sin x),(2,2.0 * (exp x * ((- (sin x)) / 2.0) + exp x * cos x + exp x / 2.0 * sin x)),(3,6.0 * (exp x * ((-1.0) * cos x / 6.0) + exp x * ((- (sin x)) / 2.0) + exp x / 2.0 * cos x + exp x / 6.0 * sin x)),(4,24.0 * (exp x * ((-1.0) * (- (sin x)) / 24.0) + exp x * ((-1.0) * cos x / 6.0) + exp x / 2.0 * ((- (sin x)) / 2.0) + exp x / 6.0 * cos x + exp x / 24.0 * sin x))]
+ -}
 
-ε :: (Eq a, Floating a) => Weil (DOrder 4) a
-ε = di 0
+-- * Partial derivatives.
 
--- >>> normalise <$> cos (injCoeWeil x + ε)
--- (sin x / 6.0) d(0)^3 + ((- (cos x)) / 2.0) d(0)^2 + (- (sin x)) d(0) + (cos x)
+{-
+Let's calculate the partial derivatives up to second-order w.r.t. x and the first w.r.t. y.
 
--- 確かに 3 階微分の値まで計算出来ている！
-
--- 今度は多変数関数の偏導関数を一挙に求めてみよう
--- x について2階、yについて1階まで求めてみる。
-
--- それには、R[X]/(X^3) ⨂ R[Y]/(Y^2) の冪零構造を使えばよい。
-
+We can use the smooth structure of R[X]/(X^3) ⨂ R[Y]/(Y^2).
+-}
 δ1 :: (Eq a, Floating a) => Weil (DOrder 3 |*| DOrder 2) a
 δ1 = di 0
 
@@ -107,20 +104,55 @@ f2 x y = sin x * cos y
 -- >>> normalise <$> f2 (injCoeWeil x + δ1) (injCoeWeil y + δ2)
 -- ((- (sin x)) / 2.0 * (- (sin y))) d(0)^2 d(1) + ((- (sin x)) / 2.0 * cos y) d(0)^2 + (cos x * (- (sin y))) d(0) d(1) + (cos x * cos y) d(0) + (sin x * (- (sin y))) d(1) + (sin x * cos y)
 
--- ** 反例のチェック
+-- * Counterexample detection
 
--- 有限次元代数だが、Weil 代数でない例を弾けるか見てみよう。
--- R[X]/(X^3 - 1) はどうだろうか。
+-- R[X]/(X^3 - 1) must be rejected, as it is a finite-dimensional algebra, but not Weil.
 
--- >>> isWeil (toIdeal [var 0 ^3 - 1 :: Polynomial _ 1])
--- Nothing
+{-
+>>> isWeil (toIdeal [var 0 ^3 - 1 :: Polynomial _ 1])
+Nothing
+-}
+
+-- Nothing means "it is not a Weil algebra!" so it rejects its input as expected!
+
+-- Another exmaple: R[x,y]/(x^3-y), which is not finite-dimensional at all!
 
 -- >>> isWeil (toIdeal [var 0 ^3 - var 1 :: Polynomial _ 2])
 -- Nothing
 
--- 冪零ではないので、ちゃんと弾かれている。
+-- Rejected as expected!
 
--- 意味はパッとわからないが、ちゃんと Weil代数になる筈のやつを見てみよう。
+-- * General Weil algebra computation
+
+-- Let's gather Weil settings for R[e] = R[X]/(X^4).
+
+idealX4 :: Ideal (Polynomial AP.Rational 1)
+idealX4 = toIdeal [var 0 ^ 4]
+
+{-
+Let's calculate its Weil setting (Algorithm 1):
+
+>>> isWeil idealX4
+Just (SomeWeil (WeilSettings {weilBasis = [[0],[1],[2],[3]], nonZeroVarMaxPowers = [3], weilMonomDic = fromList [([0],[1,0,0,0]),([1],[0,1,0,0]),([2],[0,0,1,0]),([3],[0,0,0,1])], table = fromList [((0,0),1),((0,1),X_0),((1,2),X_0^3),((0,2),X_0^2),((1,1),X_0^2),((0,3),X_0^3)]}))
+
+It's indeed a Weil algebra!
+It has e^0 (=1), e^1, e^2, e^3 as its basis with of maximum degree three.
+The 'table' field gives its mulitplication table (trivial in this case, though).
+
+Let's see if this behaves correctly.
+-}
+
+ε :: (Eq a, Floating a) => Weil (DOrder 4) a
+ε = di 0
+
+{-
+>>> normalise <$> cos (injCoeWeil x + ε)
+((-1.0) * (- (sin x)) / 6.0) d(0)^3 + ((-1.0) * cos x / 2.0) d(0)^2 + (- (sin x)) d(0) + (cos x)
+
+It indeed gives differential coefficients up to the third (modulo factorial)!
+-}
+
+-- Let's see more complex, genral case:
 -- R[e,d] = R[x, y]/(x^2 - y, y^2)
 
 red :: Ideal (Polynomial AP.Rational 2)
@@ -131,14 +163,14 @@ red = toIdeal [x ^ 2 - y ^ 3, y ^ 4]
 -- >>> isWeil red
 -- Just (SomeWeil (WeilSettings {weilBasis = [[0,0],[0,1],[1,0],[0,2],[1,1],[2,0],[1,2],[3,0]], nonZeroVarMaxPowers = [3,3], weilMonomDic = fromList [([0,2],[0,0,0,1,0,0,0,0]),([1,1],[0,0,0,0,1,0,0,0]),([3,0],[0,0,0,0,0,0,0,1]),([1,0],[0,0,1,0,0,0,0,0]),([0,3],[0,0,0,0,0,1,0,0]),([2,0],[0,0,0,0,0,1,0,0]),([1,2],[0,0,0,0,0,0,1,0]),([0,1],[0,1,0,0,0,0,0,0]),([0,0],[1,0,0,0,0,0,0,0]),([1,3],[0,0,0,0,0,0,0,1])], table = fromList [((0,0),1),((1,3),X_0^2),((0,1),X_1),((1,2),X_0*X_1),((0,2),X_0),((1,1),X_1^2),((0,3),X_1^2),((2,5),X_0^3),((0,4),X_0*X_1),((2,2),X_0^2),((0,5),X_0^2),((2,3),X_0*X_1^2),((1,6),X_0^3),((0,6),X_0*X_1^2),((0,7),X_0^3),((1,4),X_0*X_1^2),((3,4),X_0^3)]}))
 
--- Weil 環であることがわかった。では、この上で関数を計算させてみよう。
+-- Indeed it is Weil.
 --
--- 上の in x に π/4 + d0 + d1 喰わせるとどうなるか？
+-- What if we feed  π/4 + d0 + d1 to sin?
 
 -- >>> withWeil @Double red (sin ((pi/4) + di 0 + di 1))
 -- Just (-2.7755575615628914e-17*X_0^3 - 0.3535533905932738*X_0*X_1^2 - 0.4714045207910317*X_0^2 - 0.7071067811865475*X_0*X_1 - 0.35355339059327373*X_1^2 + 0.7071067811865476*X_0 + 0.7071067811865476*X_1 + 0.7071067811865475)
 
--- 記号を入れてみよう。f (x + d(0)) ？
+-- We can also feed symbolic types:
 
 -- >>> withWeil red (normalise <$> sin (injCoeWeil x + di 0 + di 1))
 -- Just (((-1.0) * (- (sin x)) / 6.0 + (-1.0) * cos x / 6.0)*X_0^3 + ((-1.0) * cos x / 2.0)*X_0*X_1^2 + ((-1.0) * cos x / 6.0 + (- (sin x)) / 2.0)*X_0^2 + (- (sin x))*X_0*X_1 + ((- (sin x)) / 2.0)*X_1^2 + (cos x)*X_0 + (cos x)*X_1 + (sin x))
