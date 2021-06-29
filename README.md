@@ -57,16 +57,25 @@ Then import and feed whatever you want:
 >>> import Numeric.Algebra.Smooth
 >>> import Numeric.Algebra.Smooth.Weil
 
-# Setting needed extensions:
+-- Setting needed extensions:
 >>> :set -Wno-type-defaults -XDataKinds -XPolyKinds -XGADTs -XTypeOperators
+>>> :set -XRankNTypes -XFlexibleContexts
 
 >>> diffUpTo 5 (\x -> sin (x/2) * exp (x^2)) (pi/4)
 fromList [(0,0.7091438342369428),(1,1.9699328611326816),(2,5.679986037666626),(3,19.85501973096302),(4,73.3133870997595),(5,299.9934189752827)]
 
->>> sin (x + di 0) * exp (y + di 1) :: Weil (DOrder 2 |*| DOrder 3) Double
-1.233936338258819 d(0) d(1)^2 + 2.467872676517638 d(0) d(1) 
-  + 0.7124134770565902 d(1)^2 + 2.467872676517638 d(0) 
-  + 1.4248269541131804 d(1) + 1.4248269541131804
+>>> sin (pi/3 + di 0) * exp (pi/6 + di 1) :: Weil (DOrder 2 |*| DOrder 3) Double
+0.42202294874111723 d(0) d(1)^2 + 0.8440458974822345 d(0) d(1) 
+  + 0.7309651891796508 d(1)^2 + 0.8440458974822345 d(0)
+  + 1.4619303783593016 d(1)   + 1.4619303783593016
+
+-- Computing with general Weil algebra
+>>> :m +Algebra.Ring.Polynomial Algebra.Ring.Ideal 
+>>> import qualified Algebra.Prelude.Core as AP
+>>> let [x,y] = vars :: [Polynomial AP.Rational 2]
+>>> let theIdeal = toIdeal [x^3 - 2 * y^2, y^3, x^2*y]
+>>> withWeil (toIdeal [x  ^ 3 - 2 * y^2, y^3, x^2*y]) (sin (pi/3 + di 0) * exp (pi/6 + di 1))
+Just (0.5438504802710591*X_0*X_1^2 - 0.7309651891796508*X_0^2 + 0.8440458974822345*X_0*X_1 + 0.44961655668557265*X_1^2 + 0.8440458974822345*X_0 + 1.4619303783593016*X_1 + 1.4619303783593016)
 ```
 
 
