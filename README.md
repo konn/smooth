@@ -30,10 +30,10 @@ First, you need to setup Haskell environment.
 
 There are two options:
 
-* [Using local Haskell environment with REPL or HLS](#play-local)
-* [Using isolated Jupyter Notebook environment in Docker](#play-docker)
+* [Using local Haskell environment with REPL or HLS](#using-local-environment)
+* [Using isolated Jupyter Notebook environment in Docker](#playing-with-docker)
 
-### Using Local Environment {#play-local}
+### Using Local Environment
 Although you can use `cabal-install`, we recommend to use [stack](https://haskellstack.com) as it is the tool we use officially to develop this project.
 
 First, compile all the dependencies once:
@@ -91,7 +91,7 @@ It allows you to evaluate repl lines (comment string starting with `>>>`) embedd
 Due to the GHC's bug, it might fail with GHC >= 8.10.3, 8.10.4; so I recommend you to use GHC 8.10.5.
 (If you don't get the meaning of this instruction, we recommend to use REPL.)
 
-### Playing with Docker {#play-docker}
+### Playing with Docker
 We are providing the docker image containing the library and Jupyter Notebooks to play with: [`konn/smooth-jupyter`](https://hub.docker.com/r/konn/smooth-jupyter).
 It contains all the dependencies and Jupyter Notebook environment to play with.
 
