@@ -27,6 +27,13 @@ In this package, we will explore the possibility to extend ADs with higher infin
 
 ## How to Play with?
 First, you need to setup Haskell environment.
+
+There are two options:
+
+* [Using local Haskell environment with REPL or HLS](#play-local)
+* [Using isolated Jupyter Notebook environment in Docker](#play-docker)
+
+### Using Local Environment {#play-local}
 Although you can use `cabal-install`, we recommend to use [stack](https://haskellstack.com) as it is the tool we use officially to develop this project.
 
 First, compile all the dependencies once:
@@ -38,7 +45,7 @@ $ stack build
 
 Then, you have two options to play with: REPL and HLS.
 
-### Playing with REPL
+#### Playing with REPL
 If you want to run the examples in `app/Main.hs`, you can specify the target explicitly by:
 
 ```sh
@@ -78,9 +85,33 @@ fromList [(0,0.7091438342369428),(1,1.9699328611326816),(2,5.679986037666626),(3
 Just (0.5438504802710591*X_0*X_1^2 - 0.7309651891796508*X_0^2 + 0.8440458974822345*X_0*X_1 + 0.44961655668557265*X_1^2 + 0.8440458974822345*X_0 + 1.4619303783593016*X_1 + 1.4619303783593016)
 ```
 
-
-### Playing with Haskell Language Server
+#### Playing with Haskell Language Server
 If you use LSP-supported editors, you can use haskell-language-server's Eval plugin.
 It allows you to evaluate repl lines (comment string starting with `>>>`) embedded in Haskell code.
 Due to the GHC's bug, it might fail with GHC >= 8.10.3, 8.10.4; so I recommend you to use GHC 8.10.5.
 (If you don't get the meaning of this instruction, we recommend to use REPL.)
+
+### Playing with Docker {#play-docker}
+We are providing the docker image containing the library and Jupyter Notebooks to play with: [`konn/smooth-jupyter`](https://hub.docker.com/r/konn/smooth-jupyter).
+It contains all the dependencies and Jupyter Notebook environment to play with.
+
+#### Notes on scattered notebook outputs
+__NOTE__: Due to the current status of IHaskell (the Haskell Engine for Jupyter), the output of IHaskell get scattered with the superfluous warning like the following:
+
+```haskell
+<interactive>:1:5: warning: [-Wname-shadowing] This binding for ‘it_var_73669506452478438323’ shadows the existing binding defined at <interactive>:1:5
+```
+
+This warning is harmless, but it makes the output cell rather dirty and makes it harder to locate the evaluation results in the output cell.
+If you don't like that, we recommend to use your local environment instead of Jupyter.
+
+#### Procedure
+
+You can run the following to download the appropriate docker image and run Jupyter Lab server in the isolated container:
+
+```sh
+$ docker run --rm -p 8888:8888 konn/smooth-jupyter:latest
+```
+
+Open `https://127.0.0.1:8888` in the browse and open `notebooks/demo.ipynb` to play with.
+You can now evaluate cells in a top-down manner, re-edit cells, re-evaluate it, etc.
