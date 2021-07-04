@@ -40,6 +40,7 @@ dependencies:
 - containers
 - foldl
 - halg-algorithms
+- simple-reflect
 - sized
 - profunctors
 - semialign
@@ -70,6 +71,7 @@ executables:
     - -rtsopts
     - -with-rtsopts=-N
     dependencies:
+    - symbolic
     - ad
     - smooth
     - simple-reflect

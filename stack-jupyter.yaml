@@ -30,6 +30,7 @@ resolver: lts-17.4
 #   - wai
 packages:
 - .
+- symbolic
 - /opt/IHaskell
 - /opt/IHaskell/ihaskell-display/ihaskell-hatex
 - /opt/IHaskell/ihaskell-display/ihaskell-widgets

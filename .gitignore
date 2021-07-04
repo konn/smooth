@@ -67,3 +67,19 @@ Temporary Items
 .apdisk
 
 
+### https://raw.github.com/github/gitignore/14f8a8b4c51ecc00b18905a95c117954e6c77b9d/community/Python/JupyterNotebooks.gitignore
+
+# gitignore template for Jupyter Notebooks
+# website: http://jupyter.org/
+
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# IPython
+profile_default/
+ipython_config.py
+
+# Remove previous ipynb_checkpoints
+#   git rm -r .ipynb_checkpoints/
+
+

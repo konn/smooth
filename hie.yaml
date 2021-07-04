@@ -1,5 +1,9 @@
 cradle:
   stack:
+    stackYaml: stack-ide.yaml
+    components:
+    - path: "symbolic/lib"
+      component: "symbolic:lib"
     - path: "src"
       component: "smooth:lib"
     - path: "app/Main.hs"

@@ -1,0 +1,6 @@
+cradle:
+  stack:
+    stackYaml: ../stack-ide.yaml
+    components:
+    - path: "src"
+      component: "symbolic:lib"

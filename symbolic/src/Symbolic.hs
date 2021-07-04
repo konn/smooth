@@ -1,10 +1,14 @@
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE RankNTypes #-}
@@ -15,19 +19,18 @@
 
 module Symbolic
   ( Symbolic (..),
+    IsSymbolic (..),
     (.:*),
     (.:+),
     (.:-),
     (.:/),
     (.:**),
-    x,
-    y,
     Reducer,
     normalise,
   )
 where
 
-import Algebra.Ring.Polynomial.Class (PrettyCoeff (..))
+import Algebra.Ring.Polynomial
 import AlgebraicPrelude
   ( WrapFractional (..),
     WrapNum (..),
@@ -47,7 +50,7 @@ import Control.Lens
     _Wrapped',
   )
 import Control.Monad ((>=>))
-import Control.Monad.Trans.Accum (Accum, add, runAccum)
+import Control.Monad.Trans.State.Strict (State, modify', runState)
 import qualified Data.DList as DL
 import Data.Data (Data)
 import Data.Either (partitionEithers)
@@ -57,7 +60,11 @@ import qualified Data.HashMap.Strict as HM
 import Data.Hashable
 import Data.List (foldl1')
 import Data.Monoid (Product (..), Sum (Sum, getSum))
+import GHC.Exts
 import GHC.Generics (Generic)
+import GHC.OverloadedLabels
+import GHC.TypeLits (KnownSymbol, symbolVal')
+import GHC.TypeNats (KnownNat)
 import Numeric.Algebra
   ( Abelian,
     Additive,
@@ -182,12 +189,6 @@ instance Floating Symbolic where
 
 makePrisms ''Symbolic
 
-x :: Symbolic
-x = Var "x"
-
-y :: Symbolic
-y = Var "y"
-
 data Reduction = Reduced | NormalForm
   deriving (Read, Show, Eq, Ord)
 
@@ -198,7 +199,7 @@ instance Semigroup Reduction where
 instance Monoid Reduction where
   mempty = NormalForm
 
-type Reducer = Accum Reduction
+type Reducer = State Reduction
 
 normalise :: Symbolic -> Symbolic
 normalise =
@@ -208,14 +209,14 @@ normalise =
 fixedPoint :: (Symbolic -> Reducer Symbolic) -> Symbolic -> Symbolic
 fixedPoint reducer = go
   where
-    go sym =
-      let (sym', reduced) = runAccum (transformM reducer sym) mempty
+    go !sym =
+      let (!sym', reduced) = runState (transformM reducer sym) mempty
        in case reduced of
             NormalForm -> sym'
             Reduced -> go sym'
 
 progress :: a -> Reducer a
-progress a = add Reduced >> pure a
+progress a = modify' (<> Reduced) >> pure a
 
 noProgress :: a -> Reducer a
 noProgress = pure
@@ -313,3 +314,19 @@ instance DecidableZero Symbolic where
   isZero = (== 0)
 
 instance Commutative Symbolic
+
+class IsSymbolic a where
+  fromSymbolic :: Symbolic -> a
+
+instance IsSymbolic Symbolic where
+  fromSymbolic = id
+
+instance
+  (c ~ Symbolic, KnownNat n, IsMonomialOrder n ord) =>
+  IsSymbolic (OrderedPolynomial c ord n)
+  where
+  fromSymbolic = injectCoeff
+
+instance KnownSymbol sym => IsLabel sym Symbolic where
+  fromLabel = Var $ symbolVal' (proxy# :: Proxy# sym)
+  {-# INLINE fromLabel #-}
