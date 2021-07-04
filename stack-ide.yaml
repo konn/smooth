@@ -18,6 +18,8 @@
 # resolver: ./custom-snapshot.yaml
 # resolver: https://example.com/snapshots/2018-01-01.yaml
 resolver: lts-17.4
+compiler: ghc-8.10.5
+work-dir: .stack-ide
 
 # User packages to be built.
 # Various formats can be used as shown in the example below.
@@ -54,6 +56,5 @@ extra-deps:
   - unamb-0.2.7
   - repa-3.4.1.4@rev:7
   - process-extras-0.7.4
-  - ihaskell-blaze-0.3.0.1
   - github: konn/factorials
     commit: f4ae86d3ff241258d08663f77b550c945bb65497
