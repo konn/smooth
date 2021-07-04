@@ -12,15 +12,19 @@ RUN rm -rf /var/lib/apt/lists/*
 USER jovyan
 ENV WORK=/home/jovyan/work
 
-COPY stack.yaml package.yaml Setup.hs ${WORK}/
+COPY package.yaml Setup.hs ${WORK}/
+COPY stack-jupyter.yaml ${WORK}/stack.yaml
+RUN mkdir -p ${WORK}/symbolic
+COPY symbolic/package.yaml ${WORK}/symbolic/package.yaml
+COPY symbolic/Setup.hs ${WORK}/symbolic/Setup.hs
 
 WORKDIR ${WORK}
 
-RUN mkdir -p ${WORK}/src ${WORK}/test ${WORK}/bench ${WORK}/app
+RUN mkdir -p ${WORK}/src ${WORK}/test ${WORK}/bench ${WORK}/app ${WORK}/symbolic/src
 
 RUN stack build --only-dependencies
 
-COPY stack-jupyter.yaml ${WORK}/stack.yaml
+COPY symbolic ${WORK}/symbolic
 COPY app ${WORK}/app
 COPY src ${WORK}/src
 COPY test ${WORK}/test
