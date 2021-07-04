@@ -31,7 +31,7 @@ First, you need to setup Haskell environment.
 There are two options:
 
 * [Using local Haskell environment with REPL or HLS](#using-local-environment)
-* [Using isolated Jupyter Notebook environment in Docker](#playing-with-docker)
+* [Using Jupyter Notebook](#playing-with-jupyter-notebook)
 
 ### Using Local Environment
 Although you can use `cabal-install`, we recommend to use [stack](https://haskellstack.com) as it is the tool we use officially to develop this project.
@@ -91,21 +91,43 @@ It allows you to evaluate repl lines (comment string starting with `>>>`) embedd
 Due to the GHC's bug, it might fail with GHC >= 8.10.3, 8.10.4; so I recommend you to use GHC 8.10.5.
 (If you don't get the meaning of this instruction, we recommend to use REPL.)
 
-### Playing with Docker
-We are providing the docker image containing the library and Jupyter Notebooks to play with: [`konn/smooth-jupyter`](https://hub.docker.com/r/konn/smooth-jupyter).
-It contains all the dependencies and Jupyter Notebook environment to play with.
+### Playing with Jupyter Notebook
+There are two options: 
 
-#### Notes on scattered notebook outputs
-__NOTE__: Due to the current status of IHaskell (the Haskell Engine for Jupyter), the output of IHaskell get scattered with the superfluous warning like the following:
+* [Run Jupyter Locally](#running-jupyter-locally)
+* [Use Docker image](#jupyter-with-docker)
 
-```haskell
-<interactive>:1:5: warning: [-Wname-shadowing] This binding for ‘it_var_73669506452478438323’ shadows the existing binding defined at <interactive>:1:5
+#### Running Jupyter Locally
+You first have to install `jupyter`:
+
+```sh
+$ pip install jupyter
 ```
 
-This warning is harmless, but it makes the output cell rather dirty and makes it harder to locate the evaluation results in the output cell.
-If you don't like that, we recommend to use your local environment instead of Jupyter.
+Then within `smooth` directory, you must install all dependencies and packages explicitly:
 
-#### Procedure
+```sh
+$ stack build ihaskell ihaskell-blaze smooth symbolic
+```
+
+If this is the first time to use IHaskell backend with Jupyter Notebook, you have to install Haskell kernel into jupyter with Stack support:
+
+```sh
+$ stack exec -- ihaskell --stack install
+```
+
+Then in the top-level directory of `smooth`, you can invoke jupyter:
+
+```sh
+$ jupyter notebook # or: jupyter lab
+```
+
+Browse to `notebooks` directory and open `demote.ipynb` in Jupyter.
+You can now edit/evaluate something as you like. Enjoy!
+
+#### Jupyter With Docker
+We are providing the docker image containing the library and Jupyter Notebooks to play with: [`konn/smooth-jupyter`](https://hub.docker.com/r/konn/smooth-jupyter).
+It contains all the dependencies and Jupyter Notebook environment to play with.
 
 You can run the following to download the appropriate docker image and run Jupyter Lab server in the isolated container:
 
