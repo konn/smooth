@@ -39,15 +39,16 @@ main =
             [ bench "tensors" $ nf (diffUpToTensor sn input) 1.0
             , bench "Dn" $ nf (diffUpToDn sn input) 1.0
             ]
-      | n <- [1 .. 10]
+      | n <- [1 .. iter]
       ]
-    | (lab, MkSmooth input) <-
-        [ ("identity", MkSmooth id)
-        , ("exp x", MkSmooth exp)
+    | (lab, MkSmooth input, iter) <-
+        [ ("identity", MkSmooth id, 10)
+        , ("exp x", MkSmooth exp, 10)
         ,
           ( "x * exp (-x * x + x)"
           , MkSmooth $ \x ->
               x * exp (- x * x + x)
+          , 9
           )
         ]
     ]
