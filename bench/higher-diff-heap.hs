@@ -34,7 +34,7 @@ resultDir :: FilePath
 resultDir = "bench-results"
 
 benchName :: FilePath
-benchName = "liftWeil-heap.txt"
+benchName = "higher-diff-heap.txt"
 
 main :: IO ()
 main = do
