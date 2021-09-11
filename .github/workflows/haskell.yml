@@ -83,7 +83,7 @@ jobs:
         ghc-version: '8.10.4'
         cabal-version: '3.0'
         enable-stack: true
-        stack-version: '2.5.1'
+        stack-version: '2.7.3'
 
     - name: Cache ~/.stack
       uses: actions/cache@v2
@@ -183,7 +183,7 @@ jobs:
         ghc-version: '8.10.4'
         cabal-version: '3.0'
         enable-stack: true
-        stack-version: '2.5.1'
+        stack-version: '2.7.3'
 
     - name: Install Dependent Libraries
       run: |
@@ -216,7 +216,7 @@ jobs:
         ghc-version: '8.10.4'
         cabal-version: '3.0'
         enable-stack: true
-        stack-version: '2.5.1'
+        stack-version: '2.7.3'
 
     - name: Download prebuilt binaries
       uses: actions/download-artifact@v2
