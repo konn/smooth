@@ -39,7 +39,7 @@ benchName = "higher-diff-heap.txt"
 main :: IO ()
 main = do
   (results, config) <- weighResults theBench
-  let fmt = reportGroup config "liftSmooth Heap Profile" results
+  let fmt = reportGroup config "Higher Differential Heap Profile" results
   createDirectoryIfMissing True resultDir
   writeFile (resultDir </> benchName) fmt
 
