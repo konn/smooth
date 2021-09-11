@@ -145,6 +145,29 @@ jobs:
     - name: Build
       run: |
         stack --no-terminal build --test --no-run-tests --bench --no-run-benchmarks
+    
+    - name: Collect built binaries
+      run: |
+        mkdir -p bins/tests bins/exes bins/benchs
+        stack ide targets 2>&1 | grep ":exe:" | cut -d: -f3 | while read FILE; do 
+          TARG="$(stack path --dist-dir)/build/${FILE}/${FILE}"
+          cp "${TARG}" "bins/exes/${FILE}"
+        done
+        stack ide targets 2>&1 | grep ":bench:" | cut -d: -f3 | while read FILE; do 
+          TARG="$(stack path --dist-dir)/build/${FILE}/${FILE}"
+          cp "${TARG}" "bins/benchs/${FILE}"
+        done
+        stack ide targets 2>&1 | grep ":test:" | cut -d: -f3 | while read FILE; do 
+          TARG="$(stack path --dist-dir)/build/${FILE}/${FILE}"
+          cp "${TARG}" "bins/tests/${FILE}"
+        done
+    - name: Upload built binaries
+      uses: actions/upload-artifact@v2.2.1
+      with:
+        name: bins
+        path: bins
+        if-no-files-found: error # optional, defaule is warn
+        retention-days: 90
 
   test:
     needs:
@@ -162,64 +185,21 @@ jobs:
         enable-stack: true
         stack-version: '2.5.1'
 
-    - name: Cache ~/.stack
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: ~/.stack
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}-build
-        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-
-          ${{runner.os}}-master-stack-global-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-global-
-
-    - name: Cache ~/.cabal
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: ~/.cabal
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}
-        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-
-          ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-cabal
-
-    - name: Cache ~/.ghc
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: ~/.ghc
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
-        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-ghc
-
-    - name: Cache .stack-work
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: .stack-work
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}-build
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-
-          ${{runner.os}}-${{github.ref}}-stack-work-
-          ${{runner.os}}-master-stack-work-
-
     - name: Install Dependent Libraries
       run: |
         sudo apt-get update -y -qq
         sudo apt-get install -y -qq wget libgmp3-dev libgsl0-dev liblapack-dev llvm-7-dev
+    - name: Download prebuilt binaries
+      uses: actions/download-artifact@v2
+      with:
+        name: bins
+        path: bins
     - name: Run tests
-      run: stack --no-terminal build --test --bench --no-run-benchmarks
+      run: |
+        for TEST in bins/tests/*; do
+          echo "Running ${TEST}"
+          "${TEST}"
+        done
 
   bench:
     needs:
@@ -237,57 +217,11 @@ jobs:
         enable-stack: true
         stack-version: '2.5.1'
 
-    - name: Cache ~/.stack
-      uses: actions/cache@v2
+    - name: Download prebuilt binaries
+      uses: actions/download-artifact@v2
       with:
-        # A directory to store and save the cache
-        path: ~/.stack
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}-build
-        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}
-          ${{runner.os}}-${{github.ref}}-stack-global-${{ hashFiles('stack.yaml.lock') }}-
-          ${{runner.os}}-master-stack-global-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-stack-global-
-
-    - name: Cache ~/.cabal
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: ~/.cabal
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}
-        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}-
-          ${{runner.os}}-${{github.ref}}-cabal-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-cabal
-
-    - name: Cache ~/.ghc
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: ~/.ghc
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
-        # An ordered list of keys to use for restoring the cache if no cache hit occurred for key
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-ghc-${{ hashFiles('stack.yaml.lock') }}
-          ${{runner.os}}-master-ghc
-
-    - name: Cache .stack-work
-      uses: actions/cache@v2
-      with:
-        # A directory to store and save the cache
-        path: .stack-work
-        # An explicit key for restoring and saving the cache
-        key: ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}-build
-        restore-keys: |
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-${{ github.sha }}
-          ${{runner.os}}-${{github.ref}}-stack-work-${{ hashFiles('stack.yaml.lock') }}-
-          ${{runner.os}}-${{github.ref}}-stack-work-
-          ${{runner.os}}-master-stack-work-
+        name: bins
+        path: bins
 
     - name: Run Benchmarks
       run: |
@@ -295,13 +229,13 @@ jobs:
         sudo lshw -class processor > bench-results/processors.txt
         cp /proc/cpuinfo bench-results
         cp /proc/meminfo bench-results
-        stack bench smooth:bench:liftWeil-speed --ba "--csv=bench-results/liftWeil-speed.csv"
-        stack bench smooth:bench:liftWeil-heap
-        stack bench smooth:bench:diffupto-bench --ba "--csv=bench-results/diffupto.csv"
-        stack bench smooth:bench:multdiffupto-bench --ba "--csv=bench-results/multdiffupto-speed.csv"
-        stack bench smooth:bench:multdiffupto-heap
-        stack bench smooth:bench:higher-diff-speed --ba "--csv=bench-results/higher-diff-speed.csv"
-        stack bench smooth:bench:higher-diff-heap
+        ./bins/benchs/liftWeil-speed --csv=bench-results/liftWeil-speed.csv
+        ./bins/benchs/liftWeil-heap
+        ./bins/benchs/diffupto-bench --csv=bench-results/diffupto.csv
+        ./bins/benchs/multdiffupto-bench --csv=bench-results/multdiffupto-speed.csv
+        ./bins/benchs/multdiffupto-heap
+        ./bins/benchs/higher-diff-speed --csv=bench-results/higher-diff-speed.csv
+        ./bins/benchs/higher-diff-heap
 
     - name: Upload benchmark results
       uses: actions/upload-artifact@v2.2.1
