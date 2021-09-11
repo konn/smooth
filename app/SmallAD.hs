@@ -1,5 +1,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE RankNTypes #-}
+{-# OPTIONS_GHC -Wno-type-defaults  -Wno-unused-imports #-}
 
 module SmallAD where
 
@@ -21,8 +22,8 @@ instance Num a => Num (AD a) where
   AD f f' * AD g g' = AD (f * g) (f' * g + f * g')
   AD f f' - AD g g' = AD (f - g) (f' - g')
   negate (AD f f') = AD (negate f) (negate f')
-  abs (AD f f') = AD (abs f) (signum f)
-  signum (AD f f') = AD (signum f) 0
+  abs (AD f f') = AD (abs f) (f' * signum f)
+  signum (AD f _) = AD (signum f) 0
 
 instance Fractional a => Fractional (AD a) where
   recip (AD f f') = AD (recip f) (negate $ f ^ 2 * f')
@@ -57,26 +58,17 @@ diff f x = inifinitesimal $ f (AD x 1)
 
 -- >>> let x = pi/4 + d
 -- >>> cos x  + sin x
--- 1.414213562373095 + 1.1102230246251565e-16 d
 
 -- >>> cos (pi/4) + sin (pi/4)
--- 1.414213562373095
 
 -- >>> -sin (pi/4) + cos (pi/4)
--- 1.1102230246251565e-16
-
--- * 記号微分の復元
 
 -- >>> :type x
--- x :: Symbolic
 
 -- >>> normalise <$> cos (AD x 1) + sin (AD x 1)
--- (cos x + sin x) + (- (sin x) + cos x) d
 
--- * 二重数の冪零性
+-- * Nilpotency
 
 -- >>> d
--- 0 + 1 d
 
 -- >>> d * d
--- 0 + 0 d
