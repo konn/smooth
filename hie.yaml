@@ -24,3 +24,7 @@ cradle:
       component: "smooth:bench:multdiffupto-heap"
     - path: "bench/liftWeil-heap.hs"
       component: "smooth:bench:liftWeil-heap"
+    - path: "bench/higher-diff-heap.hs"
+      component: "smooth:bench:higher-diff-heap"
+    - path: "bench/higher-diff-speed.hs"
+      component: "smooth:bench:higher-diff-speed"
