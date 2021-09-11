@@ -56,7 +56,7 @@ cases =
 
 theBench :: Weigh ()
 theBench = forM_ cases $ \(lab, MkSmooth f) -> wgroup lab $
-  forM_ [0 .. 10] $ \n ->
+  forM_ [1 .. 10] $ \n ->
     case toSomeSNat n of
       SomeSNat sn -> wgroup (show n) $ do
         func "tensors" (diffUpToTensor sn f) 1.0
