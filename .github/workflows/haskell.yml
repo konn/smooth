@@ -198,6 +198,7 @@ jobs:
       run: |
         for TEST in bins/tests/*; do
           echo "Running ${TEST}"
+          chmod +x "${TEST}"
           "${TEST}"
         done
 
@@ -229,6 +230,7 @@ jobs:
         sudo lshw -class processor > bench-results/processors.txt
         cp /proc/cpuinfo bench-results
         cp /proc/meminfo bench-results
+        chmod +x ./bins/benchs/*
         ./bins/benchs/liftWeil-speed --csv=bench-results/liftWeil-speed.csv
         ./bins/benchs/liftWeil-heap
         ./bins/benchs/diffupto-bench --csv=bench-results/diffupto.csv
